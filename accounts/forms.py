@@ -8,11 +8,26 @@ User = get_user_model()
 class LoginForm(AuthenticationForm):
     username = forms.CharField(
         label="Usuario",
-        widget=forms.TextInput(attrs={"class": "form-control", "autofocus": True}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autofocus": True,
+                "placeholder": "Tu usuario",
+                "autocomplete": "username",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+            }
+        ),
     )
     password = forms.CharField(
         label="Contraseña",
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Tu contrasena",
+                "autocomplete": "current-password",
+            }
+        ),
     )
 
 

@@ -1,8 +1,13 @@
+import re
+
 from django import forms
+from django.conf import settings
 from django.db.models import Q
 
 from appconfig.models import CareerConfig
 from registry.models import ThesisFile, ThesisRecord
+
+ORCID_RE = re.compile(r"^https?://orcid\.org/\d{4}-\d{4}-\d{4}-\d{4}$", re.IGNORECASE)
 
 
 class CareerChoiceField(forms.ModelChoiceField):
@@ -20,6 +25,15 @@ class ThesisRecordForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        expected_dni = int(getattr(settings, "THESIS_DNI_DEFAULT_LENGTH", 8))
+        dni_attrs = {
+            "inputmode": "numeric",
+            "pattern": r"\d*",
+            "maxlength": str(expected_dni),
+            # Guardrail client-side (no reemplaza validacion server-side).
+            "oninput": "this.value=this.value.replace(/\\D/g,'');",
+        }
+
         qs = self.fields["career"].queryset.filter(active=True).order_by("carrera_excel")
         if self.instance and self.instance.pk and self.instance.career_id:
             qs = self.fields["career"].queryset.filter(
@@ -37,18 +51,22 @@ class ThesisRecordForm(forms.ModelForm):
         self.fields["autor1_nombre"].widget.attrs["placeholder"] = "PEREZ GOMEZ, JUAN CARLOS"
         self.fields["autor1_dni"].label = "Autor 1: DNI"
         self.fields["autor1_dni"].widget.attrs["placeholder"] = "12345678"
+        self.fields["autor1_dni"].widget.attrs.update(dni_attrs)
 
         self.fields["autor2_nombre"].label = "Autor 2: Apellidos, Nombres"
         self.fields["autor2_nombre"].help_text = "Opcional. Formato: Apellidos, Nombres"
         self.fields["autor2_dni"].label = "Autor 2: DNI"
+        self.fields["autor2_dni"].widget.attrs.update(dni_attrs)
         self.fields["autor3_nombre"].label = "Autor 3: Apellidos, Nombres"
         self.fields["autor3_nombre"].help_text = "Opcional. Formato: Apellidos, Nombres"
         self.fields["autor3_dni"].label = "Autor 3: DNI"
+        self.fields["autor3_dni"].widget.attrs.update(dni_attrs)
 
         self.fields["asesor_nombre"].label = "Asesor: Apellidos, Nombres"
         self.fields["asesor_nombre"].help_text = "Formato: Apellidos, Nombres"
         self.fields["asesor_nombre"].widget.attrs["placeholder"] = "RAMIREZ QUISPE, ANA MARIA"
         self.fields["asesor_dni"].label = "Asesor: DNI"
+        self.fields["asesor_dni"].widget.attrs.update(dni_attrs)
         self.fields["asesor_orcid"].label = "Asesor: ORCID"
         self.fields["asesor_orcid"].widget.attrs["placeholder"] = "https://orcid.org/0000-0000-0000-0000"
 
@@ -76,6 +94,17 @@ class ThesisRecordForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+
+        for f in ["autor1_dni", "autor2_dni", "autor3_dni", "asesor_dni"]:
+            val = (cleaned.get(f) or "").strip()
+            if not val:
+                continue
+            if not val.isdigit():
+                self.add_error(f, "Debe contener solo digitos.")
+
+        asesor_orcid = (cleaned.get("asesor_orcid") or "").strip()
+        if asesor_orcid and not ORCID_RE.match(asesor_orcid):
+            self.add_error("asesor_orcid", "Formato invalido. Ej: https://orcid.org/0000-0000-0000-0000")
 
         # Formato "Apellidos, Nombres"
         for f in ["autor1_nombre", "autor2_nombre", "autor3_nombre", "asesor_nombre", "jurado1", "jurado2", "jurado3"]:

@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_http_methods
 
 from accounts.decorators import role_required
 from accounts.forms import LoginForm, UserUpsertForm
@@ -18,21 +20,45 @@ class UserLoginView(LoginView):
 
 
 class UserLogoutView(LogoutView):
+    # Force redirect to our login page after logout (also avoids Django's default logged_out template).
+    next_page = "accounts:login"
     http_method_names = ["get", "post", "options"]
+
+
+@require_http_methods(["GET", "POST"])
+def logout_view(request):
+    # Always redirect to the custom login page. This avoids Django admin's logged_out template
+    # being picked up when logout is accessed directly.
+    auth_logout(request)
+    return redirect("accounts:login")
 
 
 @login_required
 def dashboard_view(request):
     from registry.models import ThesisRecord
 
-    status_counts = {
-        s["status"]: s["count"]
-        for s in ThesisRecord.objects.values("status").order_by("status").annotate(count=models.Count("id"))
-    }
+    status_counts = {s["status"]: s["count"] for s in ThesisRecord.objects.values("status").annotate(count=models.Count("id"))}
+    status_label_map = {code: label for code, label in ThesisRecord.STATUS_CHOICES}
+    status_rows = [
+        {"status": code, "label": status_label_map.get(code, code), "count": int(status_counts.get(code, 0))}
+        for code, _label in ThesisRecord.STATUS_CHOICES
+    ]
+
+    recent_records = (
+        ThesisRecord.objects.select_related("career")
+        .order_by("-updated_at", "-id")[:10]
+    )
+    pending_records = (
+        ThesisRecord.objects.select_related("career")
+        .filter(status=ThesisRecord.STATUS_EN_AUDITORIA)
+        .order_by("nro")[:10]
+    )
     context = {
-        "status_counts": status_counts,
+        "status_rows": status_rows,
         "total_records": ThesisRecord.objects.count(),
         "pending_audit": ThesisRecord.objects.filter(status=ThesisRecord.STATUS_EN_AUDITORIA).count(),
+        "recent_records": recent_records,
+        "pending_records": pending_records,
     }
     return render(request, "dashboard.html", context)
 

@@ -7,6 +7,18 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _path_setting(env_name: str, default: Path) -> Path:
+    """Return an absolute Path from env or default.
+
+    Allows using relative paths (relative to BASE_DIR) and UNC/absolute paths on Windows.
+    """
+    raw = os.getenv(env_name, "").strip()
+    if not raw:
+        return default
+    p = Path(raw)
+    return p if p.is_absolute() else (BASE_DIR / p)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -129,8 +141,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = _path_setting("DJANGO_STATIC_ROOT", BASE_DIR / "staticfiles")
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "storage"
+MEDIA_ROOT = _path_setting("DJANGO_MEDIA_ROOT", BASE_DIR / "storage")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -142,6 +155,6 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
-SAF_OUTPUT_ROOT = BASE_DIR / "generated_saf"
+SAF_OUTPUT_ROOT = _path_setting("SAF_OUTPUT_ROOT", BASE_DIR / "generated_saf")
 SOFFICE_PATH = os.getenv("SOFFICE_PATH", "")
 THESIS_DNI_DEFAULT_LENGTH = int(os.getenv("THESIS_DNI_DEFAULT_LENGTH", "8"))

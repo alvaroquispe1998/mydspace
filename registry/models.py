@@ -95,8 +95,8 @@ class ThesisRecord(models.Model):
         super().save(*args, **kwargs)
 
     def can_edit(self, user) -> bool:
-        if user.is_auditor:
-            return True
+        # Regla de negocio: una vez enviado a auditoria o aprobado/incluido en lote,
+        # el registro no debe modificarse (metadatos ni archivos) para evitar inconsistencias.
         return self.status in [self.STATUS_BORRADOR, self.STATUS_OBSERVADO]
 
     def mark_submitted(self, user):

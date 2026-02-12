@@ -1,14 +1,144 @@
 {% extends 'base.html' %}
-{% block title %}Login{% endblock %}
+{% load static %}
+{% block title %}Ingreso{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block container_class %}auth-container{% endblock %}
 {% block content %}
-<div class="card" style="max-width:420px;margin:40px auto;">
-  <h2>Ingreso</h2>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div class="form-row">{{ form.username.label_tag }}{{ form.username }}</div>
-    <div class="form-row">{{ form.password.label_tag }}{{ form.password }}</div>
-    <button class="btn btn-primary" type="submit">Entrar</button>
-  </form>
+<style>
+  .auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 28px 16px; }
+  .auth-shell {
+    width: min(980px, 100%);
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 18px 55px rgba(2, 6, 23, .18);
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(8px);
+  }
+  .auth-left {
+    padding: 26px 26px 22px 26px;
+    background:
+      linear-gradient(135deg, rgba(15, 23, 42, .96), rgba(15, 23, 42, .86)),
+      radial-gradient(900px 300px at 15% 20%, rgba(37, 99, 235, .35), transparent 60%),
+      radial-gradient(500px 240px at 85% 10%, rgba(5, 150, 105, .24), transparent 60%);
+    color: #eef2ff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .brand-logo {
+    width: 168px;
+    max-width: 70%;
+    height: auto;
+    filter: drop-shadow(0 10px 18px rgba(2, 6, 23, .45));
+    margin-bottom: 14px;
+  }
+  .brand-title {
+    margin: 0 0 10px 0;
+    font-size: 30px;
+    line-height: 1.05;
+    font-family: "Palatino Linotype", Palatino, Georgia, serif;
+    color: #ffffff;
+  }
+  .brand-sub { margin: 0; color: rgba(226, 232, 240, .9); font-size: 14px; line-height: 1.5; max-width: 48ch; }
+  .auth-right { padding: 26px; background: rgba(255, 255, 255, .96); }
+  .auth-card-title {
+    margin: 0 0 6px 0;
+    font-size: 20px;
+    color: #0f172a;
+    font-weight: 800;
+  }
+  .auth-card-sub { margin: 0 0 14px 0; color: #64748b; font-size: 13px; }
+  .auth-alert {
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin: 10px 0 14px 0;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #7f1d1d;
+    font-size: 13px;
+  }
+  .auth-form label { display:block; margin-bottom: 6px; font-weight: 700; color: #0f172a; }
+  .auth-form .form-control { border-radius: 10px; padding: 10px 10px; }
+  .auth-form .form-control:focus { outline: none; border-color: rgba(37, 99, 235, .55); box-shadow: 0 0 0 4px rgba(37, 99, 235, .14); }
+  .pw-row { display:flex; gap:10px; align-items:center; }
+  .pw-row .pw-toggle {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-weight: 800;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .auth-actions { display:flex; gap:10px; align-items:center; margin-top: 10px; }
+  .auth-actions .btn { padding: 10px 14px; border-radius: 10px; font-weight: 800; }
+  .auth-foot { margin-top: 12px; color: #64748b; font-size: 12px; line-height: 1.4; }
+  @media (max-width: 860px) {
+    .auth-shell { grid-template-columns: 1fr; }
+    .auth-left { display: none; }
+  }
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-shell">
+    <div class="auth-left">
+      <img class="brand-logo" src="{% static 'logoUAI.png' %}" alt="UAI" />
+      <div class="brand-title">Repositorio Tesis</div>
+      <p class="brand-sub">Sistema para subir tesis y enviarlas a revisión.</p>
+    </div>
+
+    <div class="auth-right">
+      <h2 class="auth-card-title">Ingreso</h2>
+      <p class="auth-card-sub">Accede con tu usuario. Los usuarios registran tesis; los auditores revisan y aprueban.</p>
+
+      <form method="post" class="auth-form" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="auth-alert">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="form-row">
+          {{ form.username.label_tag }}
+          {{ form.username }}
+          {% if form.username.errors %}<div class="help" style="color:#b91c1c">{{ form.username.errors|join:", " }}</div>{% endif %}
+        </div>
+
+        <div class="form-row">
+          {{ form.password.label_tag }}
+          <div class="pw-row">
+            <div style="flex:1; min-width:0;">{{ form.password }}</div>
+            <button class="pw-toggle" type="button" id="btn-pw-toggle">Mostrar</button>
+          </div>
+          {% if form.password.errors %}<div class="help" style="color:#b91c1c">{{ form.password.errors|join:", " }}</div>{% endif %}
+        </div>
+
+        <div class="auth-actions">
+          <button class="btn btn-primary" type="submit">Entrar</button>
+        </div>
+
+        <div class="auth-foot">
+          Si no tienes acceso o olvidaste tu clave, solicita al auditor/administrador que gestione tu usuario.
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+
+<script>
+  (function () {
+    const btn = document.getElementById("btn-pw-toggle");
+    const input = document.getElementById("id_password");
+    if (!btn || !input) return;
+    btn.addEventListener("click", function () {
+      const next = input.type === "password" ? "text" : "password";
+      input.type = next;
+      btn.textContent = next === "password" ? "Mostrar" : "Ocultar";
+    });
+  })();
+</script>
 {% endblock %}

@@ -30,9 +30,19 @@
     .msg.error { background:#fee2e2; }
     .msg.warning { background:#fef3c7; }
     .badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; background:#e2e8f0; }
+
+    /* Auth page layout (login) */
+    body.auth-page {
+      background:
+        radial-gradient(1200px 600px at 15% 20%, rgba(37, 99, 235, .18), transparent 60%),
+        radial-gradient(900px 500px at 85% 30%, rgba(5, 150, 105, .14), transparent 55%),
+        radial-gradient(700px 500px at 70% 90%, rgba(15, 23, 42, .10), transparent 60%),
+        #f4f6f9;
+    }
+    body.auth-page .container { max-width:none; margin:0; padding:0; }
   </style>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   {% if request.user.is_authenticated %}
   <div class="nav">
     <strong>SAF Platform</strong>
@@ -49,7 +59,7 @@
     <a href="{% url 'accounts:logout' %}">Salir</a>
   </div>
   {% endif %}
-  <div class="container">
+  <div class="container {% block container_class %}{% endblock %}">
     {% if messages %}
       {% for message in messages %}
         <div class="msg {{ message.tags }}">{{ message }}</div>
