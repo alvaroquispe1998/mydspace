@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Licencias{% endblock %}
+{% block content %}
+<div class="card"><a class="btn btn-success" href="{% url 'appconfig:licenses_create' %}">Nueva licencia</a></div>
+<div class="card">
+<table>
+<thead><tr><th>Nombre</th><th>Version</th><th>Activa</th><th>Creada</th><th></th></tr></thead>
+<tbody>
+{% for l in licenses %}
+<tr>
+<td>{{ l.name }}</td><td>{{ l.version }}</td><td>{{ l.is_active }}</td><td>{{ l.created_at }}</td>
+<td>
+<a class="btn btn-secondary" href="{% url 'appconfig:licenses_edit' l.id %}">Editar</a>
+{% if not l.is_active %}<a class="btn btn-primary" href="{% url 'appconfig:licenses_activate' l.id %}">Activar</a>{% endif %}
+</td>
+</tr>
+{% empty %}<tr><td colspan="5">Sin licencias</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

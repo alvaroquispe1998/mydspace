@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<style>
+  .section-title { margin: 0 0 10px 0; font-size: 20px; color: #0f172a; }
+  .section-sub { margin: 0 0 14px 0; color: #64748b; font-size: 14px; }
+  .section-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 18px; background: #fcfdff; }
+  .form-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px 24px; }
+  .form-grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px 24px; }
+  .form-row label { display: block; margin-bottom: 6px; font-weight: 600; color: #0f172a; }
+  .field-err { color: #b91c1c; font-size: 12px; margin-top: 6px; }
+  .field-help { color: #64748b; font-size: 12px; margin-top: 6px; }
+  .inline-actions { display: flex; gap: 10px; align-items: center; margin: 12px 0 14px; flex-wrap: wrap; }
+  .hidden-block { display: none; }
+  .btn-chip { border: 1px solid #cbd5e1; background: #fff; color: #0f172a; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-weight: 600; }
+  .btn-chip:hover { background: #f8fafc; }
+</style>
+
+<div class="card">
+  <h2 style="margin-top:0">{{ title }}</h2>
+  <p class="section-sub">Completa los datos en formato claro para evitar observaciones en auditoría.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="section-box">
+      <h3 class="section-title">Datos generales</h3>
+      <div class="form-grid-2">
+        <div class="form-row">
+          {{ form.career.label_tag }}
+          {{ form.career }}
+          {% if form.career.help_text %}<div class="field-help">{{ form.career.help_text }}</div>{% endif %}
+          {% if form.career.errors %}<div class="field-err">{{ form.career.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.titulo.label_tag }}
+          {{ form.titulo }}
+          {% if form.titulo.errors %}<div class="field-err">{{ form.titulo.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h3 class="section-title">Autor(es)</h3>
+      <p class="section-sub">Usa formato <strong>Apellidos, Nombres</strong>. El Autor 1 es obligatorio.</p>
+
+      <div class="form-grid-2">
+        <div class="form-row">
+          {{ form.autor1_dni.label_tag }}
+          {{ form.autor1_dni }}
+          {% if form.autor1_dni.errors %}<div class="field-err">{{ form.autor1_dni.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.autor1_nombre.label_tag }}
+          {{ form.autor1_nombre }}
+          {% if form.autor1_nombre.help_text %}<div class="field-help">{{ form.autor1_nombre.help_text }}</div>{% endif %}
+          {% if form.autor1_nombre.errors %}<div class="field-err">{{ form.autor1_nombre.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="inline-actions" id="author2-action">
+        <button class="btn-chip" type="button" id="btn-add-author2">+ Agregar Autor 2</button>
+      </div>
+
+      <div id="author2-block" class="form-grid-2 hidden-block">
+        <div class="form-row">
+          {{ form.autor2_dni.label_tag }}
+          {{ form.autor2_dni }}
+          {% if form.autor2_dni.errors %}<div class="field-err">{{ form.autor2_dni.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.autor2_nombre.label_tag }}
+          {{ form.autor2_nombre }}
+          {% if form.autor2_nombre.help_text %}<div class="field-help">{{ form.autor2_nombre.help_text }}</div>{% endif %}
+          {% if form.autor2_nombre.errors %}<div class="field-err">{{ form.autor2_nombre.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="inline-actions hidden-block" id="author3-action">
+        <button class="btn-chip" type="button" id="btn-add-author3">+ Agregar Autor 3</button>
+      </div>
+
+      <div id="author3-block" class="form-grid-2 hidden-block">
+        <div class="form-row">
+          {{ form.autor3_dni.label_tag }}
+          {{ form.autor3_dni }}
+          {% if form.autor3_dni.errors %}<div class="field-err">{{ form.autor3_dni.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.autor3_nombre.label_tag }}
+          {{ form.autor3_nombre }}
+          {% if form.autor3_nombre.help_text %}<div class="field-help">{{ form.autor3_nombre.help_text }}</div>{% endif %}
+          {% if form.autor3_nombre.errors %}<div class="field-err">{{ form.autor3_nombre.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h3 class="section-title">Asesor</h3>
+      <div class="form-grid-3">
+        <div class="form-row">
+          {{ form.asesor_dni.label_tag }}
+          {{ form.asesor_dni }}
+          {% if form.asesor_dni.errors %}<div class="field-err">{{ form.asesor_dni.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.asesor_nombre.label_tag }}
+          {{ form.asesor_nombre }}
+          {% if form.asesor_nombre.help_text %}<div class="field-help">{{ form.asesor_nombre.help_text }}</div>{% endif %}
+          {% if form.asesor_nombre.errors %}<div class="field-err">{{ form.asesor_nombre.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.asesor_orcid.label_tag }}
+          {{ form.asesor_orcid }}
+          {% if form.asesor_orcid.errors %}<div class="field-err">{{ form.asesor_orcid.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h3 class="section-title">Jurado</h3>
+      <p class="section-sub">Formato <strong>Apellidos, Nombres</strong>.</p>
+
+      <div class="form-grid-2">
+        <div class="form-row">
+          {{ form.jurado1.label_tag }}
+          {{ form.jurado1 }}
+          {% if form.jurado1.help_text %}<div class="field-help">{{ form.jurado1.help_text }}</div>{% endif %}
+          {% if form.jurado1.errors %}<div class="field-err">{{ form.jurado1.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="inline-actions" id="jurado2-action">
+        <button class="btn-chip" type="button" id="btn-add-jurado2">+ Agregar Jurado 2</button>
+      </div>
+
+      <div id="jurado2-block" class="form-grid-2 hidden-block">
+        <div class="form-row">
+          {{ form.jurado2.label_tag }}
+          {{ form.jurado2 }}
+          {% if form.jurado2.help_text %}<div class="field-help">{{ form.jurado2.help_text }}</div>{% endif %}
+          {% if form.jurado2.errors %}<div class="field-err">{{ form.jurado2.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="inline-actions hidden-block" id="jurado3-action">
+        <button class="btn-chip" type="button" id="btn-add-jurado3">+ Agregar Jurado 3</button>
+      </div>
+
+      <div id="jurado3-block" class="form-grid-2 hidden-block">
+        <div class="form-row">
+          {{ form.jurado3.label_tag }}
+          {{ form.jurado3 }}
+          {% if form.jurado3.help_text %}<div class="field-help">{{ form.jurado3.help_text }}</div>{% endif %}
+          {% if form.jurado3.errors %}<div class="field-err">{{ form.jurado3.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h3 class="section-title">Contenido académico</h3>
+      <div class="form-grid-2">
+        <div class="form-row">
+          {{ form.resumen.label_tag }}
+          {{ form.resumen }}
+          {% if form.resumen.errors %}<div class="field-err">{{ form.resumen.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
+          {{ form.keywords_raw.label_tag }}
+          {{ form.keywords_raw }}
+          {% if form.keywords_raw.help_text %}<div class="field-help">{{ form.keywords_raw.help_text }}</div>{% endif %}
+          {% if form.keywords_raw.errors %}<div class="field-err">{{ form.keywords_raw.errors|join:', ' }}</div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Guardar registro</button>
+    {% if record %}<a class="btn btn-secondary" href="{% url 'registry:records_detail' record.id %}">Volver</a>{% endif %}
+  </form>
+</div>
+
+<script>
+  const author2Block = document.getElementById("author2-block");
+  const author3Block = document.getElementById("author3-block");
+  const author2Action = document.getElementById("author2-action");
+  const author3Action = document.getElementById("author3-action");
+  const btnAuthor2 = document.getElementById("btn-add-author2");
+  const btnAuthor3 = document.getElementById("btn-add-author3");
+
+  const jurado2Block = document.getElementById("jurado2-block");
+  const jurado3Block = document.getElementById("jurado3-block");
+  const jurado2Action = document.getElementById("jurado2-action");
+  const jurado3Action = document.getElementById("jurado3-action");
+  const btnJurado2 = document.getElementById("btn-add-jurado2");
+  const btnJurado3 = document.getElementById("btn-add-jurado3");
+
+  function hasValue(id) {
+    const el = document.getElementById(id);
+    return !!(el && el.value && el.value.trim() !== "");
+  }
+
+  function show(el, displayType = "block") {
+    if (!el) return;
+    el.style.display = displayType;
+  }
+
+  function hide(el) {
+    if (!el) return;
+    el.style.display = "none";
+  }
+
+  function showAuthor2() {
+    show(author2Block, "grid");
+    hide(author2Action);
+    show(author3Action, "flex");
+  }
+
+  function showAuthor3() {
+    show(author3Block, "grid");
+    hide(author3Action);
+  }
+
+  function showJurado2() {
+    show(jurado2Block, "grid");
+    hide(jurado2Action);
+    show(jurado3Action, "flex");
+  }
+
+  function showJurado3() {
+    show(jurado3Block, "grid");
+    hide(jurado3Action);
+  }
+
+  btnAuthor2?.addEventListener("click", showAuthor2);
+  btnAuthor3?.addEventListener("click", showAuthor3);
+  btnJurado2?.addEventListener("click", showJurado2);
+  btnJurado3?.addEventListener("click", showJurado3);
+
+  const hasAuthor2Data = hasValue("id_autor2_dni") || hasValue("id_autor2_nombre");
+  const hasAuthor3Data = hasValue("id_autor3_dni") || hasValue("id_autor3_nombre");
+  const hasJurado2Data = hasValue("id_jurado2");
+  const hasJurado3Data = hasValue("id_jurado3");
+
+  if (hasAuthor2Data) showAuthor2();
+  if (hasAuthor3Data) {
+    showAuthor2();
+    showAuthor3();
+  }
+  if (hasJurado2Data) showJurado2();
+  if (hasJurado3Data) {
+    showJurado2();
+    showJurado3();
+  }
+
+  {% if form.autor2_nombre.errors or form.autor2_dni.errors %}
+    showAuthor2();
+  {% endif %}
+  {% if form.autor3_nombre.errors or form.autor3_dni.errors %}
+    showAuthor2();
+    showAuthor3();
+  {% endif %}
+  {% if form.jurado2.errors %}
+    showJurado2();
+  {% endif %}
+  {% if form.jurado3.errors %}
+    showJurado2();
+    showJurado3();
+  {% endif %}
+</script>
+{% endblock %}

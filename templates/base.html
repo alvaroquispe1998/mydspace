@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SAF Platform{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", Tahoma, sans-serif; margin:0; background:#f4f6f9; color:#1f2937; }
+    .nav { background:#0f172a; color:#fff; padding:12px 20px; display:flex; gap:14px; align-items:center; }
+    .nav a { color:#dbeafe; text-decoration:none; font-size:14px; }
+    .nav .right { margin-left:auto; }
+    .container { max-width:1200px; margin:20px auto; padding:0 16px; }
+    .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:16px; }
+    .btn { border:none; border-radius:8px; padding:8px 12px; cursor:pointer; text-decoration:none; display:inline-block; font-size:14px; }
+    .btn-primary { background:#2563eb; color:#fff; }
+    .btn-secondary { background:#475569; color:#fff; }
+    .btn-success { background:#059669; color:#fff; }
+    .btn-warning { background:#d97706; color:#fff; }
+    .btn-danger { background:#dc2626; color:#fff; }
+    .grid { display:grid; gap:16px; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:8px; border-bottom:1px solid #e5e7eb; text-align:left; font-size:14px; }
+    .form-row { margin-bottom:14px; min-width: 0; }
+    .form-control, .form-select { width:100%; max-width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; }
+    .help { color:#64748b; font-size:12px; }
+    .msg { padding:10px; border-radius:8px; margin-bottom:8px; }
+    .msg.success { background:#dcfce7; }
+    .msg.error { background:#fee2e2; }
+    .msg.warning { background:#fef3c7; }
+    .badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; background:#e2e8f0; }
+  </style>
+</head>
+<body>
+  {% if request.user.is_authenticated %}
+  <div class="nav">
+    <strong>SAF Platform</strong>
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'registry:records_list' %}">Registros</a>
+    {% if request.user.role == 'auditor' %}
+      <a href="{% url 'saf:batches_list' %}">Lotes SAF</a>
+      <a href="{% url 'appconfig:careers_list' %}">Carreras</a>
+      <a href="{% url 'appconfig:licenses_list' %}">Licencias</a>
+      <a href="{% url 'appconfig:params_list' %}">Parametros</a>
+      <a href="{% url 'accounts:users_list' %}">Usuarios</a>
+    {% endif %}
+    <span class="right">{{ request.user.username }} ({{ request.user.role }})</span>
+    <a href="{% url 'accounts:logout' %}">Salir</a>
+  </div>
+  {% endif %}
+  <div class="container">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

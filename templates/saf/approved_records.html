@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Aprobados{% endblock %}
+{% block content %}
+<div class="card">
+  <h3>Registros aprobados</h3>
+  <table>
+    <thead><tr><th>NRO</th><th>Titulo</th><th>Carrera</th></tr></thead>
+    <tbody>
+      {% for r in records %}
+      <tr><td>{{ r.nro|stringformat:'03d' }}</td><td>{{ r.titulo }}</td><td>{{ r.career.carrera_excel|default:'-' }}</td></tr>
+      {% empty %}<tr><td colspan="3">No hay aprobados.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

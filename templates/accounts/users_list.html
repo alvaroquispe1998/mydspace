@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+<div class="card">
+  <a class="btn btn-success" href="{% url 'accounts:users_create' %}">Nuevo usuario</a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td><td>{{ u.get_full_name }}</td><td>{{ u.email }}</td><td>{{ u.role }}</td><td>{{ u.is_active }}</td>
+        <td><a class="btn btn-secondary" href="{% url 'accounts:users_edit' u.id %}">Editar</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">Sin usuarios</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

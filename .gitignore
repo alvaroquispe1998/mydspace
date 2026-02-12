@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+*.log
+media/
+storage/
+staticfiles/
+
+# Test / tooling cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Project-generated SAF artifacts
+out_saf/
+generated_saf/
+reporte_validacion.csv
+reporte_validacion_*.csv
+mapfiles/
+logs/
+*.zip
+
+# Local operational input data (do not version by default)
+28.09.2025/
+Plantilla_Tesis*.xlsx
+Edit Item _ Repositorio Universidad Autonoma de Ica.pdf
+_pdf_extract.txt

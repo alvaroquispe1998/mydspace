@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Registros{% endblock %}
+{% block content %}
+<style>
+  .filters-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(200px, 220px) auto;
+    gap: 14px;
+    align-items: end;
+  }
+  .filter-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .actions-col {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn-sm {
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .title-cell {
+    max-width: 560px;
+  }
+  .title-cell-text {
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  @media (max-width: 940px) {
+    .filters-grid {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+    .filter-actions {
+      justify-content: flex-start;
+    }
+  }
+</style>
+
+<div class="card">
+  <form method="get" class="filters-grid">
+    <div>
+      <label for="id_q">Buscar</label>
+      <input id="id_q" class="form-control" type="text" name="q" value="{{ q }}" placeholder="Título, autor o NRO">
+    </div>
+    <div>
+      <label for="id_status">Estado</label>
+      <select id="id_status" class="form-select" name="status">
+        <option value="">Todos</option>
+        {% for value, label in status_choices %}
+          <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+      <a class="btn btn-secondary" href="{% url 'registry:records_list' %}">Limpiar</a>
+      <a class="btn btn-success" href="{% url 'registry:records_create' %}">Nuevo registro</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:72px;">NRO</th>
+        <th>Título</th>
+        <th style="width:260px;">Autores</th>
+        <th style="width:180px;">Carrera</th>
+        <th style="width:130px;">Estado</th>
+        <th style="width:200px;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>{{ r.nro|stringformat:'03d' }}</td>
+        <td class="title-cell"><div class="title-cell-text">{{ r.titulo|default:'(sin título)' }}</div></td>
+        <td>{{ r.authors_display|default:'-' }}</td>
+        <td>{{ r.career.carrera_excel|default:'-' }}</td>
+        <td><span class="badge">{{ r.status }}</span></td>
+        <td>
+          <div class="actions-col">
+            <a class="btn btn-primary btn-sm" href="{% url 'registry:records_detail' r.id %}">Ver</a>
+            {% if request.user.role == 'auditor' or r.status == 'BORRADOR' or r.status == 'OBSERVADO' %}
+              <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_edit' r.id %}">Editar</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">No hay registros.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

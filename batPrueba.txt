@@ -1,0 +1,2 @@
+cd C:\dspace\bin
+dspace import --add --eperson repositorio@autonomadeica.edu.pe --collection 20.500.14441/40 --source C:\import_test --mapfile C:\import_test\mapfile.map

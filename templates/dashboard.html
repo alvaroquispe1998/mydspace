@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="grid grid-2">
+  <div class="card"><h3>Total registros</h3><p style="font-size:28px">{{ total_records }}</p></div>
+  <div class="card"><h3>En auditoria</h3><p style="font-size:28px">{{ pending_audit }}</p></div>
+</div>
+<div class="card">
+  <h3>Resumen por estado</h3>
+  <table>
+    <thead><tr><th>Estado</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      {% for status, count in status_counts.items %}
+        <tr><td>{{ status }}</td><td>{{ count }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">Sin datos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

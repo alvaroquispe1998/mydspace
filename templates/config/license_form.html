@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card">
+<h2>{{ title }}</h2>
+<form method="post">
+{% csrf_token %}
+{% for field in form %}
+<div class="form-row">{{ field.label_tag }}{{ field }}{% if field.errors %}<div class="help" style="color:#b91c1c">{{ field.errors|join:', ' }}</div>{% endif %}</div>
+{% endfor %}
+<button class="btn btn-primary" type="submit">Guardar</button>
+<a class="btn btn-secondary" href="{% url 'appconfig:licenses_list' %}">Volver</a>
+</form>
+</div>
+{% endblock %}

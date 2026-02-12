@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Lote {{ batch.batch_code }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Lote {{ batch.batch_code }}</h2>
+  <p><strong>Estado:</strong> {{ batch.status }}</p>
+  <p><strong>Salida:</strong> <code>{{ batch.output_path }}</code></p>
+  <p><strong>Reporte:</strong> <code>{{ batch.report_path }}</code></p>
+  <form method="post" action="{% url 'saf:batches_generate' batch.id %}" style="display:inline-block;">
+    {% csrf_token %}
+    <button class="btn btn-success" type="submit">Generar SAF</button>
+  </form>
+  {% if batch.zip_path %}
+    <a class="btn btn-primary" href="{% url 'saf:batches_download' batch.id %}">Descargar ZIP</a>
+  {% endif %}
+</div>
+<div class="card">
+  <h3>Items del lote</h3>
+  <table>
+    <thead><tr><th>NRO</th><th>Titulo</th><th>Carrera</th><th>Resultado</th><th>Detalle</th></tr></thead>
+    <tbody>
+      {% for i in items %}
+      <tr><td>{{ i.record.nro|stringformat:'03d' }}</td><td>{{ i.record.titulo }}</td><td>{{ i.record.career.carrera_excel|default:'-' }}</td><td>{{ i.result }}</td><td>{{ i.detail }}</td></tr>
+      {% empty %}<tr><td colspan="5">Sin items</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="card"><h3>Log</h3><pre>{{ batch.log_text }}</pre></div>
+{% endblock %}

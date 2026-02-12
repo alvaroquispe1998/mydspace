@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Parametros{% endblock %}
+{% block content %}
+<div class="card"><a class="btn btn-success" href="{% url 'appconfig:params_create' %}">Nuevo parametro</a></div>
+<div class="card">
+  <h3 style="margin-top:0;">¿Para qué sirven los parámetros?</h3>
+  <p class="help" style="margin:0 0 10px 0;">Permiten cambiar reglas del sistema sin tocar código.</p>
+  <table>
+    <thead><tr><th>Key recomendado</th><th>Value</th><th>Efecto</th></tr></thead>
+    <tbody>
+      <tr><td><code>INCLUDE_TURNITIN</code></td><td><code>1</code> o <code>0</code></td><td>Si es <code>1</code>, Turnitin es obligatorio en envío/aprobación. Si es <code>0</code>, Turnitin es opcional.</td></tr>
+      <tr><td><code>NOTA_INTERNA</code></td><td>texto libre</td><td>Ejemplo de parámetro informativo para tu equipo.</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="card">
+<table>
+<thead><tr><th>Key</th><th>Value</th><th>Descripcion</th><th></th></tr></thead>
+<tbody>
+{% for p in params %}
+<tr><td>{{ p.key }}</td><td>{{ p.value }}</td><td>{{ p.description }}</td><td><a class="btn btn-secondary" href="{% url 'appconfig:params_edit' p.id %}">Editar</a></td></tr>
+{% empty %}<tr><td colspan="4">Sin parametros</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

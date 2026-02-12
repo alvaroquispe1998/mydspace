@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Carreras{% endblock %}
+{% block content %}
+<div class="card"><a class="btn btn-success" href="{% url 'appconfig:careers_create' %}">Nueva carrera</a></div>
+<div class="card">
+<table>
+<thead><tr><th>Carrera</th><th>Norm</th><th>Handle</th><th>Activa</th><th></th></tr></thead>
+<tbody>
+{% for c in careers %}
+<tr><td>{{ c.carrera_excel }}</td><td>{{ c.carrera_norm }}</td><td>{{ c.handle }}</td><td>{{ c.active }}</td><td><a class="btn btn-secondary" href="{% url 'appconfig:careers_edit' c.id %}">Editar</a></td></tr>
+{% empty %}<tr><td colspan="5">Sin carreras</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}
