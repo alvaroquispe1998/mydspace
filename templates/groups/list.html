@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Sustentaciones{% endblock %}
+{% block content %}
+<style>
+  .head { display:flex; gap: 12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+  .head h2 { margin: 0; }
+  .muted { color:#64748b; font-size: 13px; }
+  .create-grid { display:grid; grid-template-columns: minmax(220px, 280px) auto; gap: 10px; align-items: end; }
+  .btn-sm { padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 800; }
+  .table-shell { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+  .table-wrap { overflow: auto; }
+  .nice-table { border-collapse: separate; border-spacing: 0; }
+  .nice-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .nice-table tbody tr:hover { background: #f8fafc; }
+  @media (max-width: 720px) {
+    .create-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="head">
+  <div>
+    <h2>Sustentaciones</h2>
+    <div class="muted">Un grupo por día. Los registros se gestionan dentro del grupo.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Crear grupo</h3>
+  <form method="post" action="{% url 'registry:groups_create' %}" class="create-grid">
+    {% csrf_token %}
+    <div class="form-row" style="margin:0;">
+      {{ form.date.label_tag }}
+      {{ form.date }}
+    </div>
+    <div>
+      <button class="btn btn-primary" type="submit">Crear / Abrir</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Grupos</h3>
+  <div class="table-shell">
+    <div class="table-wrap">
+      <table class="nice-table">
+        <thead>
+          <tr>
+            <th style="width:140px;">Fecha</th>
+            <th>Grupo</th>
+            <th style="width:160px;">Estado</th>
+            <th style="width:120px;">Registros</th>
+            <th style="width:140px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in groups %}
+            <tr>
+              <td style="white-space:nowrap;">{{ g.date }}</td>
+              <td><strong>{{ g.name }}</strong></td>
+              <td><span class="status-badge" data-status="{{ g.status }}">{{ g.get_status_display|upper }}</span></td>
+              <td>{{ g.records.count }}</td>
+              <td style="text-align:right;">
+                <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_detail' g.id %}">Abrir</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="muted">Sin grupos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

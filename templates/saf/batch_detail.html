@@ -1,29 +1,185 @@
 {% extends 'base.html' %}
 {% block title %}Lote {{ batch.batch_code }}{% endblock %}
 {% block content %}
+<style>
+  .section-head { display:flex; gap:12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+  .section-head h3 { margin: 0; }
+  .muted { color:#64748b; font-size: 13px; }
+  .btn-sm { padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 800; }
+
+  .batch-hero { display:flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+  .batch-title { margin:0; font-size: 22px; font-weight: 900; color:#0f172a; letter-spacing: -0.02em; }
+  .batch-sub { margin-top: 6px; display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+  .batch-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    color: #334155;
+    white-space: nowrap;
+  }
+  .batch-badge[data-bstatus="CREATED"] { background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }
+  .batch-badge[data-bstatus="RUNNING"] { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+  .batch-badge[data-bstatus="DONE"] { background:#dcfce7; border-color:#bbf7d0; color:#065f46; }
+  .batch-badge[data-bstatus="FAILED"] { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+
+  .meta-grid { margin-top: 12px; display:grid; grid-template-columns: 160px 1fr; gap: 8px 12px; }
+  .meta-grid dt { margin:0; font-size: 12px; letter-spacing: .10em; text-transform: uppercase; color:#64748b; font-weight: 900; }
+  .meta-grid dd { margin:0; overflow-wrap: anywhere; }
+
+  .table-shell {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .table-wrap { overflow: auto; }
+  .nice-table { border-collapse: separate; border-spacing: 0; }
+  .nice-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .nice-table tbody tr:hover { background: #f8fafc; }
+
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    color: #334155;
+    white-space: nowrap;
+  }
+  .result-badge[data-result="OK"] { background:#dcfce7; border-color:#bbf7d0; color:#065f46; }
+  .result-badge[data-result="ERROR"] { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+  .result-badge[data-result="PENDING"] { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+
+  @media (max-width: 920px) {
+    .meta-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
 <div class="card">
-  <h2>Lote {{ batch.batch_code }}</h2>
-  <p><strong>Estado:</strong> {{ batch.status }}</p>
-  <p><strong>Salida:</strong> <code>{{ batch.output_path }}</code></p>
-  <p><strong>Reporte:</strong> <code>{{ batch.report_path }}</code></p>
-  <form method="post" action="{% url 'saf:batches_generate' batch.id %}" style="display:inline-block;">
+  <div class="batch-hero">
+    <div style="min-width: 280px; flex: 1;">
+      <h2 class="batch-title">Lote {{ batch.batch_code }}</h2>
+      <div class="batch-sub">
+        <span class="batch-badge" data-bstatus="{{ batch.status }}">{{ batch.get_status_display }}</span>
+        <span class="muted">{% if items %}{{ items|length }} ítem(s){% else %}Sin ítems{% endif %}</span>
+        {% if batch.group %}
+          <span class="muted">|</span>
+          <a class="muted" style="text-decoration:none;" href="{% url 'registry:groups_detail' batch.group.id %}">{{ batch.group.name }}</a>
+        {% endif %}
+      </div>
+      <dl class="meta-grid">
+        <dt>Creado por</dt>
+        <dd>{{ batch.created_by.username }}</dd>
+        <dt>Fecha</dt>
+        <dd>{{ batch.created_at }}</dd>
+      </dl>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      {% if batch.status != 'DONE' and batch.status != 'RUNNING' %}
+        <form method="post" action="{% url 'saf:batches_generate' batch.id %}" style="margin:0; display:inline-block;">
+          {% csrf_token %}
+          <button class="btn btn-success" type="submit">Generar SAF</button>
+        </form>
+      {% endif %}
+      {% if batch.status == 'DONE' and batch.output_path %}
+        <form method="post" action="{% url 'saf:batches_scripts' batch.id %}" style="margin:0; display:inline-block;">
+          {% csrf_token %}
+          <button class="btn btn-secondary" type="submit">Actualizar scripts</button>
+        </form>
+      {% endif %}
+      {% if batch.zip_path %}
+        <a class="btn btn-primary" href="{% url 'saf:batches_download' batch.id %}">Descargar ZIP</a>
+      {% endif %}
+    </div>
+</div>
+<div class="card">
+  <div class="section-head">
+    <h3>Ítems del lote</h3>
+    <div class="muted">Importa en DSpace y sube el JSON de enlaces para publicar el lote.</div>
+  </div>
+
+  <div class="table-shell">
+    <div class="table-wrap">
+      <table class="nice-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">Nro</th>
+            <th>Título</th>
+            <th style="width:260px;">Carrera</th>
+            <th style="width:160px;">Estado</th>
+            <th style="width:140px;">Resultado</th>
+            <th style="width:220px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in items %}
+          <tr>
+            <td><strong>{{ i.record.nro|stringformat:'03d' }}</strong></td>
+            <td style="overflow-wrap:anywhere;">
+              {{ i.record.titulo|default:"(sin título)" }}
+              {% if i.detail %}
+                <div class="muted" style="font-size:12px;">{{ i.detail }}</div>
+              {% endif %}
+            </td>
+            <td>{{ i.record.career.carrera_excel|default:'-' }}</td>
+            <td><span class="status-badge" data-status="{{ i.record.status }}">{{ i.record.get_status_display|upper }}</span></td>
+            <td><span class="result-badge" data-result="{{ i.result }}">{{ i.get_result_display }}</span></td>
+            <td style="text-align:right;">
+              <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_detail' i.record.id %}">Abrir</a>
+              {% if i.record.status == 'PUBLICADO' and i.record.dspace_url %}
+                <a class="btn btn-primary btn-sm" href="{{ i.record.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted">Sin ítems.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-head">
+    <h3>Enlaces DSpace</h3>
+    <div class="muted">Sube el JSON con enlaces/handles luego de importar en el servidor.</div>
+  </div>
+  <form method="post" action="{% url 'saf:batches_upload_links' batch.id %}" enctype="multipart/form-data">
     {% csrf_token %}
-    <button class="btn btn-success" type="submit">Generar SAF</button>
+    <div class="form-row">
+      {{ links_form.links_file.label_tag }}
+      {{ links_form.links_file }}
+      {% if links_form.links_file.help_text %}<div class="help">{{ links_form.links_file.help_text }}</div>{% endif %}
+    </div>
+    <button class="btn btn-success" type="submit">Aplicar enlaces y marcar publicados</button>
+    <div class="help" style="margin-top:10px;">
+      Formato aceptado:
+      <code>{"001":"https://.../handle/20.500.../123","002":{"handle":"20.500.../124"}}</code>
+    </div>
   </form>
-  {% if batch.zip_path %}
-    <a class="btn btn-primary" href="{% url 'saf:batches_download' batch.id %}">Descargar ZIP</a>
-  {% endif %}
 </div>
 <div class="card">
-  <h3>Items del lote</h3>
-  <table>
-    <thead><tr><th>NRO</th><th>Titulo</th><th>Carrera</th><th>Resultado</th><th>Detalle</th></tr></thead>
-    <tbody>
-      {% for i in items %}
-      <tr><td>{{ i.record.nro|stringformat:'03d' }}</td><td>{{ i.record.titulo }}</td><td>{{ i.record.career.carrera_excel|default:'-' }}</td><td>{{ i.result }}</td><td>{{ i.detail }}</td></tr>
-      {% empty %}<tr><td colspan="5">Sin items</td></tr>{% endfor %}
-    </tbody>
-  </table>
+  <div class="section-head">
+    <h3>Log</h3>
+    <div class="muted">{% if batch.generated_at %}Generado: {{ batch.generated_at }}{% else %}Sin generación aún{% endif %}</div>
+  </div>
+  <pre style="margin:0; white-space:pre-wrap;">{{ batch.log_text }}</pre>
 </div>
-<div class="card"><h3>Log</h3><pre>{{ batch.log_text }}</pre></div>
 {% endblock %}

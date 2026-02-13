@@ -3,8 +3,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.decorators import role_required
 from accounts.models import User
-from appconfig.forms import CareerConfigForm, LicenseVersionForm, SystemConfigForm
-from appconfig.models import CareerConfig, LicenseVersion, SystemConfig
+from appconfig.forms import (
+    AdvisorConfigForm,
+    CareerConfigForm,
+    JuryMemberConfigForm,
+    LicenseVersionForm,
+    SystemConfigForm,
+)
+from appconfig.models import AdvisorConfig, CareerConfig, JuryMemberConfig, LicenseVersion, SystemConfig
 
 
 @role_required(User.ROLE_AUDITOR)
@@ -119,4 +125,67 @@ def params_edit_view(request, param_id: int):
         form = SystemConfigForm(instance=target)
     return render(request, "config/param_form.html", {"form": form, "title": "Editar parámetro"})
 
-# Create your views here.
+@role_required(User.ROLE_AUDITOR)
+def advisors_list_view(request):
+    advisors = AdvisorConfig.objects.order_by("nombre")
+    return render(request, "config/advisors_list.html", {"advisors": advisors})
+
+
+@role_required(User.ROLE_AUDITOR)
+def advisors_create_view(request):
+    if request.method == "POST":
+        form = AdvisorConfigForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Asesor creado.")
+            return redirect("appconfig:advisors_list")
+    else:
+        form = AdvisorConfigForm()
+    return render(request, "config/advisor_form.html", {"form": form, "title": "Nuevo asesor"})
+
+
+@role_required(User.ROLE_AUDITOR)
+def advisors_edit_view(request, advisor_id: int):
+    advisor = get_object_or_404(AdvisorConfig, pk=advisor_id)
+    if request.method == "POST":
+        form = AdvisorConfigForm(request.POST, instance=advisor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Asesor actualizado.")
+            return redirect("appconfig:advisors_list")
+    else:
+        form = AdvisorConfigForm(instance=advisor)
+    return render(request, "config/advisor_form.html", {"form": form, "title": "Editar asesor", "advisor": advisor})
+
+
+@role_required(User.ROLE_AUDITOR)
+def jurors_list_view(request):
+    jurors = JuryMemberConfig.objects.order_by("nombre")
+    return render(request, "config/jurors_list.html", {"jurors": jurors})
+
+
+@role_required(User.ROLE_AUDITOR)
+def jurors_create_view(request):
+    if request.method == "POST":
+        form = JuryMemberConfigForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Jurado creado.")
+            return redirect("appconfig:jurors_list")
+    else:
+        form = JuryMemberConfigForm()
+    return render(request, "config/juror_form.html", {"form": form, "title": "Nuevo jurado"})
+
+
+@role_required(User.ROLE_AUDITOR)
+def jurors_edit_view(request, juror_id: int):
+    juror = get_object_or_404(JuryMemberConfig, pk=juror_id)
+    if request.method == "POST":
+        form = JuryMemberConfigForm(request.POST, instance=juror)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Jurado actualizado.")
+            return redirect("appconfig:jurors_list")
+    else:
+        form = JuryMemberConfigForm(instance=juror)
+    return render(request, "config/juror_form.html", {"form": form, "title": "Editar jurado", "juror": juror})

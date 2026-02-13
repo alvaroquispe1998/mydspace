@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card">
+  <a class="btn btn-secondary" href="{% url 'appconfig:advisors_list' %}">Volver</a>
+</div>
+<div class="card">
+  <h2 style="margin-top:0;">{{ title }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-row">{{ form.nombre.label_tag }}{{ form.nombre }}</div>
+    <div class="form-row">{{ form.dni.label_tag }}{{ form.dni }}</div>
+    <div class="form-row">{{ form.orcid.label_tag }}{{ form.orcid }}</div>
+    <div class="form-row">{{ form.active.label_tag }} {{ form.active }}</div>
+    <button class="btn btn-primary" type="submit">Guardar</button>
+  </form>
+</div>
+{% endblock %}
+

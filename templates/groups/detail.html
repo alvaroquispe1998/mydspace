@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}{{ group.name }}{% endblock %}
+{% block content %}
+<style>
+  .hero { display:flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+  .title { margin:0; font-size: 22px; font-weight: 900; color:#0f172a; letter-spacing: -0.02em; }
+  .sub { margin-top: 6px; display:flex; gap: 10px; align-items:center; flex-wrap: wrap; color:#64748b; font-size: 13px; }
+  .btn-sm { padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 800; }
+  .actions { display:flex; gap: 8px; flex-wrap: wrap; align-items:center; justify-content:flex-end; }
+  .table-shell { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+  .table-wrap { overflow: auto; }
+  .nice-table { border-collapse: separate; border-spacing: 0; }
+  .nice-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .nice-table tbody tr:hover { background: #f8fafc; }
+  .title-cut { display:block; max-width: 620px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .muted { color:#64748b; font-size: 13px; }
+  @media (max-width: 560px) {
+    .actions .btn { width: 100%; text-align: center; }
+  }
+</style>
+
+<div class="card">
+  <div class="hero">
+    <div style="min-width: 280px; flex: 1;">
+      <h2 class="title">{{ group.name }}</h2>
+      <div class="sub">
+        <span class="status-badge" data-status="{{ group.status }}">{{ group.get_status_display|upper }}</span>
+        <span class="muted">{{ records|length }} registro(s)</span>
+      </div>
+      <div class="muted" style="margin-top:10px;">Fecha: <strong>{{ group.date }}</strong></div>
+    </div>
+    <div class="actions">
+      {% if can_add_records %}
+        <a class="btn btn-primary btn-sm" href="{% url 'registry:records_create' %}?group={{ group.id }}">Nuevo registro</a>
+      {% endif %}
+      {% if can_submit %}
+        <form method="post" action="{% url 'registry:groups_submit' group.id %}" style="margin:0;">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Enviar el grupo a auditoría?');">Enviar a auditoría</button>
+        </form>
+      {% endif %}
+      {% if request.user.role == 'auditor' and group.status == 'APROBADO' %}
+        <form method="post" action="{% url 'saf:batches_create_from_group' group.id %}" style="margin:0;">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Crear lote SAF para este grupo?');">Crear lote SAF</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_list' %}">Volver</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Registros</h3>
+  <form method="get" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:10px;">
+    <div style="min-width:240px;">
+      <label for="id_career" class="muted" style="display:block; margin-bottom:6px; font-weight:800;">Carrera</label>
+      <select id="id_career" class="form-select" name="career">
+        <option value="">Todas</option>
+        {% for c in careers %}
+          <option value="{{ c.id }}" {% if career_filter == c.id|stringformat:"s" %}selected{% endif %}>{{ c.carrera_excel }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+      <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_detail' group.id %}">Limpiar</a>
+    </div>
+  </form>
+  <div class="table-shell">
+    <div class="table-wrap">
+      <table class="nice-table">
+        <thead>
+          <tr>
+            <th style="width:80px;">Nro</th>
+            <th>Título</th>
+            <th style="width:240px;">Carrera</th>
+            <th style="width:160px;">Estado</th>
+            <th style="width:260px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+            <tr>
+              <td><strong>{{ r.nro|stringformat:'03d' }}</strong></td>
+              <td>
+                <span class="title-cut">{{ r.titulo|default:"(sin título)" }}</span>
+                <div class="muted" style="font-size:12px;">{{ r.authors_display|default:"-" }}</div>
+              </td>
+              <td>{{ r.career.carrera_excel|default:"-" }}</td>
+              <td><span class="status-badge" data-status="{{ r.status }}">{{ r.get_status_display|upper }}</span></td>
+              <td style="text-align:right;">
+                <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_detail' r.id %}">Abrir</a>
+                {% if r.dspace_url %}
+                  <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="muted">Aún no hay registros en este grupo.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

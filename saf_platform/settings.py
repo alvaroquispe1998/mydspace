@@ -158,3 +158,6 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 SAF_OUTPUT_ROOT = _path_setting("SAF_OUTPUT_ROOT", BASE_DIR / "generated_saf")
 SOFFICE_PATH = os.getenv("SOFFICE_PATH", "")
 THESIS_DNI_DEFAULT_LENGTH = int(os.getenv("THESIS_DNI_DEFAULT_LENGTH", "8"))
+
+# Base URL público del repositorio DSpace (opcional). Ej: https://repositorio.autonomadeica.edu.pe
+DSPACE_BASE_URL = os.getenv("DSPACE_BASE_URL", "").strip()

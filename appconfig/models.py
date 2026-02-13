@@ -31,6 +31,33 @@ class CareerConfig(TimeStampedModel):
         return f"{self.carrera_excel} ({self.handle})"
 
 
+class AdvisorConfig(TimeStampedModel):
+    nombre = models.CharField(max_length=255)
+    dni = models.CharField(max_length=20, blank=True)
+    orcid = models.CharField(max_length=255, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["nombre", "id"]
+
+    def __str__(self) -> str:
+        extra = f" ({self.dni})" if (self.dni or "").strip() else ""
+        return f"{self.nombre}{extra}"
+
+
+class JuryMemberConfig(TimeStampedModel):
+    nombre = models.CharField(max_length=255)
+    dni = models.CharField(max_length=20, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["nombre", "id"]
+
+    def __str__(self) -> str:
+        extra = f" ({self.dni})" if (self.dni or "").strip() else ""
+        return f"{self.nombre}{extra}"
+
+
 class LicenseVersion(TimeStampedModel):
     name = models.CharField(max_length=255)
     version = models.CharField(max_length=64)

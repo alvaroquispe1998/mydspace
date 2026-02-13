@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Jurados{% endblock %}
+{% block content %}
+<div class="card">
+  <a class="btn btn-success" href="{% url 'appconfig:jurors_create' %}">Nuevo jurado</a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Nombre</th><th>DNI</th><th>Activo</th><th></th></tr></thead>
+    <tbody>
+      {% for j in jurors %}
+        <tr>
+          <td>{{ j.nombre }}</td>
+          <td>{{ j.dni|default:"-" }}</td>
+          <td>{{ j.active }}</td>
+          <td style="text-align:right;"><a class="btn btn-secondary" href="{% url 'appconfig:jurors_edit' j.id %}">Editar</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Sin jurados</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

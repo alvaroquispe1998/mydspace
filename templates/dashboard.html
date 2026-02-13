@@ -23,13 +23,12 @@
   .panel-title { margin: 0 0 10px 0; font-size: 16px; color:#0f172a; }
   .quick { display:flex; gap:10px; flex-wrap: wrap; }
   .quick .btn { font-weight: 800; }
+  .btn-sm { padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 800; }
+  .dash-actions { display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:nowrap; }
+  .dash-actions .btn { white-space: nowrap; }
+  .mini-table th:last-child, .mini-table td:last-child { width: 260px; }
 
   .status-table td:last-child { width: 120px; text-align:right; font-weight: 800; }
-  .status-pill { display:inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background:#eef2ff; color:#3730a3; }
-  .status-pill.s2 { background:#ecfeff; color:#155e75; }
-  .status-pill.s3 { background:#fff7ed; color:#9a3412; }
-  .status-pill.s4 { background:#ecfdf5; color:#065f46; }
-  .status-pill.s5 { background:#f1f5f9; color:#334155; }
 
   .mini-table th, .mini-table td { font-size: 13px; }
   .mini-table td { vertical-align: top; }
@@ -42,16 +41,19 @@
   }
   @media (max-width: 560px) {
     .kpi { grid-column: span 12; }
+    .dash-actions { flex-wrap: wrap; justify-content: flex-start; }
+    .mini-table th:last-child, .mini-table td:last-child { width: auto; }
+    .dash-actions .btn { width: 100%; text-align: center; }
   }
 </style>
 
 <div class="dash-head">
   <div>
     <h2 style="margin:0">Dashboard</h2>
-    <p class="dash-sub">Estado general del registro y auditoria de tesis.</p>
+    <p class="dash-sub">Estado general del registro y auditoría de tesis.</p>
   </div>
   <div class="quick">
-    <a class="btn btn-primary" href="{% url 'registry:records_create' %}">Nuevo registro</a>
+    <a class="btn btn-primary" href="{% url 'registry:groups_list' %}">Sustentaciones</a>
     <a class="btn btn-secondary" href="{% url 'registry:records_list' %}">Ver registros</a>
     {% if request.user.role == 'auditor' %}
       <a class="btn btn-success" href="{% url 'saf:batches_list' %}">Lotes SAF</a>
@@ -69,9 +71,9 @@
   </div>
   <div class="kpi kpi-amber">
     <a href="{% url 'registry:records_list' %}?status=EN_AUDITORIA">
-      <div class="label">En auditoria</div>
+      <div class="label">En auditoría</div>
       <div class="value">{{ pending_audit }}</div>
-      <div class="hint">Pendientes de revision</div>
+      <div class="hint">Pendientes de revisión</div>
     </a>
   </div>
   <div class="kpi kpi-green">
@@ -87,26 +89,33 @@
 
 <div class="dash-panels">
   <div class="card">
-    <h3 class="panel-title">Ultimos registros</h3>
+    <h3 class="panel-title">Últimos registros</h3>
     {% if recent_records %}
       <table class="mini-table">
-        <thead><tr><th>Nro</th><th>Titulo</th><th>Estado</th><th>Accion</th></tr></thead>
+        <thead><tr><th>Nro</th><th>Título</th><th>Estado</th><th>Acción</th></tr></thead>
         <tbody>
           {% for rec in recent_records %}
             <tr>
               <td><strong>{{ rec.nro|stringformat:'03d' }}</strong></td>
               <td>
-                <span class="title-cut">{{ rec.titulo|default:"(sin titulo)" }}</span>
+                <span class="title-cut">{{ rec.titulo|default:"(sin título)" }}</span>
                 <div class="muted" style="font-size:12px;">{{ rec.career.carrera_excel|default:"(sin carrera)" }}</div>
               </td>
-              <td><span class="status-pill s5">{{ rec.status }}</span></td>
-              <td><a class="btn btn-secondary" href="{% url 'registry:records_detail' rec.id %}">Abrir</a></td>
+              <td><span class="status-badge" data-status="{{ rec.status }}">{{ rec.get_status_display|upper }}</span></td>
+              <td>
+                <div class="dash-actions">
+                  <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_detail' rec.id %}">Abrir</a>
+                  {% if rec.dspace_url %}
+                    <a class="btn btn-success btn-sm" href="{{ rec.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+                  {% endif %}
+                </div>
+              </td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
     {% else %}
-      <div class="muted">Aun no hay registros. Crea uno desde "Nuevo registro".</div>
+      <div class="muted">Aún no hay registros. Crea uno desde "Sustentaciones".</div>
     {% endif %}
   </div>
 
@@ -117,7 +126,7 @@
       <tbody>
         {% for row in status_rows %}
           <tr>
-            <td><span class="status-pill s2">{{ row.label }}</span></td>
+            <td><span class="status-badge" data-status="{{ row.status }}">{{ row.label|upper }}</span></td>
             <td>{{ row.count }}</td>
           </tr>
         {% endfor %}
@@ -126,7 +135,7 @@
 
     {% if request.user.role == 'auditor' %}
       <div style="height:12px;"></div>
-      <h3 class="panel-title" style="margin-top:0;">Pendientes de auditoria</h3>
+      <h3 class="panel-title" style="margin-top:0;">Pendientes de auditoría</h3>
       {% if pending_records %}
         <table class="mini-table">
           <thead><tr><th>Nro</th><th>Titulo</th><th></th></tr></thead>
@@ -141,7 +150,7 @@
           </tbody>
         </table>
       {% else %}
-        <div class="muted">No hay registros en auditoria.</div>
+        <div class="muted">No hay registros en auditoría.</div>
       {% endif %}
     {% endif %}
   </div>

@@ -2,6 +2,49 @@
 {% block title %}Registro {{ record.nro|stringformat:'03d' }}{% endblock %}
 {% block content %}
 <style>
+  .record-hero {
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .record-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+  }
+  .record-sub {
+    margin-top: 6px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    color: #64748b;
+    font-size: 13px;
+  }
+  .record-meta {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 12px;
+  }
+  .record-meta dt {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 800;
+  }
+  .record-meta dd {
+    margin: 0;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+
   .header-actions {
     display: flex;
     gap: 8px;
@@ -40,11 +83,43 @@
     font-size: 13px;
     font-weight: 600;
   }
-  .path-cell code {
-    display: inline-block;
-    max-width: 540px;
-    overflow-wrap: anywhere;
-    white-space: normal;
+  .table-shell {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .table-wrap { overflow: auto; }
+  .nice-table { border-collapse: separate; border-spacing: 0; }
+  .nice-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+  .nice-table tbody tr:hover { background: #f8fafc; }
+
+  .section-head {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .section-head h3 { margin: 0; }
+  .muted { color:#64748b; font-size: 13px; }
+
+  .flow-actions {
+    display: grid;
+    gap: 10px;
+  }
+  .flow-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
   }
   @media (max-width: 980px) {
     .upload-grid {
@@ -53,23 +128,44 @@
     .upload-btn-wrap {
       align-items: stretch;
     }
+    .record-meta { grid-template-columns: 1fr; }
   }
 </style>
 
 <div class="card">
-  <h2>Registro {{ record.nro|stringformat:'03d' }}</h2>
-  <p><strong>Estado:</strong> <span class="badge">{{ record.status }}</span></p>
-  <p><strong>Título:</strong> {{ record.titulo|default:'-' }}</p>
-  <p><strong>Carrera:</strong> {{ record.career.carrera_excel|default:'-' }}</p>
-  <div class="header-actions">
-    {% if can_edit %}
-      <a class="btn btn-secondary" href="{% url 'registry:records_edit' record.id %}">Editar metadatos</a>
-    {% endif %}
+  <div class="record-hero">
+    <div style="min-width: 280px; flex: 1;">
+      <h2 class="record-title">Registro {{ record.nro|stringformat:'03d' }}</h2>
+      <div class="record-sub">
+        <span class="status-badge" data-status="{{ record.status }}">{{ record.get_status_display|upper }}</span>
+        {% if group %}
+          <span class="muted">|</span>
+          <a class="muted" style="text-decoration:none;" href="{% url 'registry:groups_detail' group.id %}">{{ group.name }}</a>
+        {% endif %}
+      </div>
+      <dl class="record-meta">
+        <dt>Título</dt>
+        <dd>{{ record.titulo|default:'-' }}</dd>
+        <dt>Carrera</dt>
+        <dd>{{ record.career.carrera_excel|default:'-' }}</dd>
+      </dl>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-secondary" href="{% url 'registry:records_edit' record.id %}">{% if can_edit %}Editar metadatos{% else %}Ver metadatos{% endif %}</a>
+      {% if record.status == 'PUBLICADO' and record.dspace_url %}
+        <a class="btn btn-primary" href="{{ record.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+      {% endif %}
+    </div>
   </div>
 </div>
 
 <div class="card">
-  <h3>Archivos</h3>
+  <div class="section-head">
+    <h3>Archivos</h3>
+    <div class="muted">
+      {% if files %}{{ files|length }} archivo(s){% else %}Sin archivos{% endif %}
+    </div>
+  </div>
   {% if can_edit %}
   <form method="post" enctype="multipart/form-data" action="{% url 'registry:records_upload_file' record.id %}" class="upload-grid">
     {% csrf_token %}
@@ -81,72 +177,130 @@
     </div>
   </form>
   {% endif %}
-  <table>
-    <thead><tr><th>Tipo</th><th>Nombre</th><th>Tamaño</th><th>Ruta</th><th>Acciones</th></tr></thead>
-    <tbody>
-      {% for f in files %}
-      <tr>
-        <td>{{ f.file_type }}</td>
-        <td>{{ f.original_name }}</td>
-        <td>{{ f.size_bytes }}</td>
-        <td class="path-cell"><code>{{ f.stored_path }}</code></td>
-        <td>
-          <div class="file-actions">
-            <a class="btn btn-secondary btn-sm" href="{{ f.file.url }}" target="_blank">Abrir</a>
-            {% if can_edit %}
-              <form method="post" action="{% url 'registry:records_delete_file' record.id f.id %}" onsubmit="return confirm('¿Eliminar este archivo?');" style="margin:0;">
-                {% csrf_token %}
-                <button class="btn btn-danger btn-sm" type="submit">Eliminar</button>
-              </form>
-            {% endif %}
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5">Sin archivos.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-shell">
+    <div class="table-wrap">
+      <table class="nice-table">
+        <thead><tr><th>Tipo</th><th>Nombre</th><th>Tamaño</th><th>Acciones</th></tr></thead>
+        <tbody>
+          {% for f in files %}
+          <tr>
+            <td><span class="badge">{{ f.file_type|upper }}</span></td>
+            <td style="overflow-wrap:anywhere;">{{ f.original_name }}</td>
+            <td style="white-space:nowrap;">{{ f.size_bytes|filesizeformat }}</td>
+            <td>
+              <div class="file-actions">
+                <a class="btn btn-secondary btn-sm" href="{{ f.file.url }}" target="_blank" rel="noopener">Abrir</a>
+                <button type="button" class="btn btn-secondary btn-sm btn-copy-link" data-url="{{ f.file.url }}">Copiar enlace</button>
+                {% if can_edit %}
+                  <form method="post" action="{% url 'registry:records_delete_file' record.id f.id %}" onsubmit="return confirm('¿Eliminar este archivo?');" style="margin:0;">
+                    {% csrf_token %}
+                    <button class="btn btn-danger btn-sm" type="submit">Eliminar</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Sin archivos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="card">
-  <h3>Acciones de flujo</h3>
-  {% if can_edit and record.status == 'BORRADOR' %}
-    <form method="post" action="{% url 'registry:records_submit' record.id %}" style="margin-bottom:8px;">{% csrf_token %}
-      <button class="btn btn-success" type="submit">Enviar a auditoría</button>
-    </form>
-  {% endif %}
-  {% if can_edit and record.status == 'OBSERVADO' %}
-    <form method="post" action="{% url 'registry:records_resubmit' record.id %}" style="margin-bottom:8px;">{% csrf_token %}
-      <button class="btn btn-success" type="submit">Reenviar a auditoría</button>
-    </form>
+  <div class="section-head">
+    <h3>Acciones de flujo</h3>
+    <div class="muted">Cambios de estado y comentarios de auditoría</div>
+  </div>
+  {% if can_edit %}
+    <div class="muted" style="margin-bottom:10px;">
+      El envío a auditoría se realiza por grupo. Ve a
+      {% if group %}
+        <a href="{% url 'registry:groups_detail' group.id %}">la sustentación</a>
+      {% else %}
+        la sustentación
+      {% endif %}
+      para enviar.
+    </div>
   {% endif %}
 
   {% if can_audit and record.status == 'EN_AUDITORIA' %}
-    <form method="post" action="{% url 'registry:records_observe' record.id %}" style="margin-bottom:8px;">
+    <form method="post" class="flow-actions">
       {% csrf_token %}
       {{ comment_form.comment }}
-      <button class="btn btn-warning" type="submit">Observar</button>
-    </form>
-    <form method="post" action="{% url 'registry:records_approve' record.id %}">
-      {% csrf_token %}
-      {{ comment_form.comment }}
-      <button class="btn btn-success" type="submit">Aprobar</button>
+      <div class="flow-buttons">
+        <button class="btn btn-warning" type="submit" formaction="{% url 'registry:records_observe' record.id %}">Observar</button>
+        <button class="btn btn-success" type="submit" formaction="{% url 'registry:records_approve' record.id %}">Aprobar</button>
+      </div>
     </form>
   {% endif %}
 </div>
 
 <div class="card">
-  <h3>Historial de auditoría</h3>
-  <table>
-    <thead><tr><th>Fecha</th><th>Acción</th><th>Usuario</th><th>Comentario</th></tr></thead>
-    <tbody>
-      {% for e in events %}
-      <tr><td>{{ e.created_at }}</td><td>{{ e.action }}</td><td>{{ e.user.username }}</td><td>{{ e.comment }}</td></tr>
-      {% empty %}
-      <tr><td colspan="4">Sin eventos.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="section-head">
+    <h3>Historial de auditoría</h3>
+    <div class="muted">{% if events %}{{ events|length }} evento(s){% else %}Sin eventos{% endif %}</div>
+  </div>
+  <div class="table-shell">
+    <div class="table-wrap">
+      <table class="nice-table">
+        <thead><tr><th>Fecha</th><th>Acción</th><th>Usuario</th><th>Comentario</th></tr></thead>
+        <tbody>
+          {% for e in events %}
+          <tr>
+            <td style="white-space:nowrap;">{{ e.created_at }}</td>
+            <td><span class="action-badge" data-action="{{ e.action }}">{{ e.get_action_display }}</span></td>
+            <td>{{ e.user.username }}</td>
+            <td style="overflow-wrap:anywhere;">{{ e.comment }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Sin eventos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
+<script>
+  (function () {
+    const btns = Array.from(document.querySelectorAll(".btn-copy-link"));
+    function toAbsolute(url) {
+      if (!url) return "";
+      if (url.startsWith("http://") || url.startsWith("https://")) return url;
+      if (url.startsWith("/")) return window.location.origin + url;
+      return window.location.origin + "/" + url;
+    }
+    async function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.setAttribute("readonly", "");
+      el.style.position = "absolute";
+      el.style.left = "-9999px";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    btns.forEach((b) => {
+      b.addEventListener("click", async () => {
+        const abs = toAbsolute(b.getAttribute("data-url"));
+        if (!abs) return;
+        try {
+          await copyText(abs);
+          b.textContent = "Copiado";
+          setTimeout(() => (b.textContent = "Copiar enlace"), 900);
+        } catch (e) {
+          alert("No se pudo copiar el enlace.");
+        }
+      });
+    });
+  })();
+</script>
 {% endblock %}

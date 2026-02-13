@@ -4,7 +4,7 @@ from django import forms
 from django.conf import settings
 from django.db.models import Q
 
-from appconfig.models import CareerConfig
+from appconfig.models import AdvisorConfig, CareerConfig, JuryMemberConfig
 from registry.models import ThesisFile, ThesisRecord
 
 ORCID_RE = re.compile(r"^https?://orcid\.org/\d{4}-\d{4}-\d{4}-\d{4}$", re.IGNORECASE)
@@ -20,6 +20,34 @@ class ThesisRecordForm(forms.ModelForm):
         queryset=CareerConfig.objects.all(),
         label="Carrera",
         empty_label="Selecciona una carrera",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    asesor_ref = forms.ModelChoiceField(
+        queryset=AdvisorConfig.objects.none(),
+        required=False,
+        label="Asesor (lista)",
+        empty_label="(Opcional)",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    jurado1_ref = forms.ModelChoiceField(
+        queryset=JuryMemberConfig.objects.none(),
+        required=False,
+        label="Jurado 1 (lista)",
+        empty_label="(Opcional)",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    jurado2_ref = forms.ModelChoiceField(
+        queryset=JuryMemberConfig.objects.none(),
+        required=False,
+        label="Jurado 2 (lista)",
+        empty_label="(Opcional)",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    jurado3_ref = forms.ModelChoiceField(
+        queryset=JuryMemberConfig.objects.none(),
+        required=False,
+        label="Jurado 3 (lista)",
+        empty_label="(Opcional)",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 
@@ -57,10 +85,6 @@ class ThesisRecordForm(forms.ModelForm):
         self.fields["autor2_nombre"].help_text = "Opcional. Formato: Apellidos, Nombres"
         self.fields["autor2_dni"].label = "Autor 2: DNI"
         self.fields["autor2_dni"].widget.attrs.update(dni_attrs)
-        self.fields["autor3_nombre"].label = "Autor 3: Apellidos, Nombres"
-        self.fields["autor3_nombre"].help_text = "Opcional. Formato: Apellidos, Nombres"
-        self.fields["autor3_dni"].label = "Autor 3: DNI"
-        self.fields["autor3_dni"].widget.attrs.update(dni_attrs)
 
         self.fields["asesor_nombre"].label = "Asesor: Apellidos, Nombres"
         self.fields["asesor_nombre"].help_text = "Formato: Apellidos, Nombres"
@@ -81,6 +105,22 @@ class ThesisRecordForm(forms.ModelForm):
         self.fields["keywords_raw"].label = "Palabras clave"
         self.fields["keywords_raw"].help_text = "Separar por ; , | o salto de línea."
 
+        # Catálogos (Asesor/Jurados) - mantener activo + el seleccionado si está inactivo.
+        aqs = AdvisorConfig.objects.filter(active=True).order_by("nombre")
+        if self.instance and self.instance.pk and self.instance.asesor_ref_id:
+            aqs = AdvisorConfig.objects.filter(Q(active=True) | Q(pk=self.instance.asesor_ref_id)).order_by("nombre")
+        self.fields["asesor_ref"].queryset = aqs
+        self.fields["asesor_ref"].help_text = "Opcional. Si seleccionas uno, se copiará a los campos del asesor."
+
+        j_active = JuryMemberConfig.objects.filter(active=True).order_by("nombre")
+        for jf in ["jurado1_ref", "jurado2_ref", "jurado3_ref"]:
+            inst_id = getattr(self.instance, f"{jf}_id", None) if (self.instance and self.instance.pk) else None
+            qs = j_active
+            if inst_id:
+                qs = JuryMemberConfig.objects.filter(Q(active=True) | Q(pk=inst_id)).order_by("nombre")
+            self.fields[jf].queryset = qs
+            self.fields[jf].help_text = "Opcional. Si seleccionas uno, se copiará al campo del jurado."
+
     @staticmethod
     def _validate_person_name(value: str, label: str):
         value = (value or "").strip()
@@ -95,7 +135,21 @@ class ThesisRecordForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
 
-        for f in ["autor1_dni", "autor2_dni", "autor3_dni", "asesor_dni"]:
+        # Sincroniza campos texto desde catálogos (si están seleccionados).
+        asesor_ref = cleaned.get("asesor_ref")
+        if asesor_ref:
+            cleaned["asesor_nombre"] = (asesor_ref.nombre or "").strip()
+            if (asesor_ref.dni or "").strip():
+                cleaned["asesor_dni"] = (asesor_ref.dni or "").strip()
+            if (asesor_ref.orcid or "").strip():
+                cleaned["asesor_orcid"] = (asesor_ref.orcid or "").strip()
+
+        for idx in [1, 2, 3]:
+            jref = cleaned.get(f"jurado{idx}_ref")
+            if jref:
+                cleaned[f"jurado{idx}"] = (jref.nombre or "").strip()
+
+        for f in ["autor1_dni", "autor2_dni", "asesor_dni"]:
             val = (cleaned.get(f) or "").strip()
             if not val:
                 continue
@@ -107,14 +161,14 @@ class ThesisRecordForm(forms.ModelForm):
             self.add_error("asesor_orcid", "Formato invalido. Ej: https://orcid.org/0000-0000-0000-0000")
 
         # Formato "Apellidos, Nombres"
-        for f in ["autor1_nombre", "autor2_nombre", "autor3_nombre", "asesor_nombre", "jurado1", "jurado2", "jurado3"]:
+        for f in ["autor1_nombre", "autor2_nombre", "asesor_nombre", "jurado1", "jurado2", "jurado3"]:
             try:
                 self._validate_person_name(cleaned.get(f, ""), self.fields[f].label)
             except forms.ValidationError as exc:
                 self.add_error(f, exc)
 
-        # Coherencia autor2/autor3: nombre + dni deben ir juntos
-        for idx in [2, 3]:
+        # Coherencia autor2: nombre + dni deben ir juntos
+        for idx in [2]:
             nombre = (cleaned.get(f"autor{idx}_nombre") or "").strip()
             dni = (cleaned.get(f"autor{idx}_dni") or "").strip()
             if nombre or dni:
@@ -122,13 +176,6 @@ class ThesisRecordForm(forms.ModelForm):
                     self.add_error(f"autor{idx}_nombre", f"Completa autor {idx}: Apellidos, Nombres.")
                 if not dni:
                     self.add_error(f"autor{idx}_dni", f"Completa autor {idx}: DNI.")
-
-        autor2_nombre = (cleaned.get("autor2_nombre") or "").strip()
-        autor2_dni = (cleaned.get("autor2_dni") or "").strip()
-        autor3_nombre = (cleaned.get("autor3_nombre") or "").strip()
-        autor3_dni = (cleaned.get("autor3_dni") or "").strip()
-        if (autor3_nombre or autor3_dni) and not (autor2_nombre or autor2_dni):
-            self.add_error("autor2_nombre", "Completa primero Autor 2 antes de registrar Autor 3.")
 
         jurado2 = (cleaned.get("jurado2") or "").strip()
         jurado3 = (cleaned.get("jurado3") or "").strip()
@@ -154,13 +201,15 @@ class ThesisRecordForm(forms.ModelForm):
             "autor1_dni",
             "autor2_nombre",
             "autor2_dni",
-            "autor3_nombre",
-            "autor3_dni",
+            "asesor_ref",
             "asesor_nombre",
             "asesor_dni",
             "asesor_orcid",
+            "jurado1_ref",
             "jurado1",
+            "jurado2_ref",
             "jurado2",
+            "jurado3_ref",
             "jurado3",
             "resumen",
             "keywords_raw",
@@ -171,8 +220,6 @@ class ThesisRecordForm(forms.ModelForm):
             "autor1_dni": forms.TextInput(attrs={"class": "form-control"}),
             "autor2_nombre": forms.TextInput(attrs={"class": "form-control"}),
             "autor2_dni": forms.TextInput(attrs={"class": "form-control"}),
-            "autor3_nombre": forms.TextInput(attrs={"class": "form-control"}),
-            "autor3_dni": forms.TextInput(attrs={"class": "form-control"}),
             "asesor_nombre": forms.TextInput(attrs={"class": "form-control"}),
             "asesor_dni": forms.TextInput(attrs={"class": "form-control"}),
             "asesor_orcid": forms.TextInput(attrs={"class": "form-control"}),
@@ -210,4 +257,11 @@ class AuditCommentForm(forms.Form):
     comment = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Comentario de auditoría"}),
+    )
+
+
+class SustentationGroupForm(forms.Form):
+    date = forms.DateField(
+        label="Fecha de sustentación",
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
     )

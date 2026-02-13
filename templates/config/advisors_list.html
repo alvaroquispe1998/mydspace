@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Asesores{% endblock %}
+{% block content %}
+<div class="card">
+  <a class="btn btn-success" href="{% url 'appconfig:advisors_create' %}">Nuevo asesor</a>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Nombre</th><th>DNI</th><th>ORCID</th><th>Activo</th><th></th></tr></thead>
+    <tbody>
+      {% for a in advisors %}
+        <tr>
+          <td>{{ a.nombre }}</td>
+          <td>{{ a.dni|default:"-" }}</td>
+          <td style="overflow-wrap:anywhere;">{{ a.orcid|default:"-" }}</td>
+          <td>{{ a.active }}</td>
+          <td style="text-align:right;"><a class="btn btn-secondary" href="{% url 'appconfig:advisors_edit' a.id %}">Editar</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Sin asesores</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

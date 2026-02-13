@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 
-from appconfig.models import CareerConfig
+from appconfig.models import AdvisorConfig, CareerConfig, JuryMemberConfig
 
 
 def thesis_file_upload_to(instance, filename):
@@ -13,21 +13,100 @@ def thesis_file_upload_to(instance, filename):
     return f"records/{instance.record_id}/{instance.file_type}_{uuid.uuid4().hex}{safe_ext}"
 
 
+class SustentationGroup(models.Model):
+    STATUS_ARMADO = "ARMADO"
+    STATUS_EN_AUDITORIA = "EN_AUDITORIA"
+    STATUS_OBSERVADO = "OBSERVADO"
+    STATUS_APROBADO = "APROBADO"
+    STATUS_POR_PUBLICAR = "POR_PUBLICAR"
+    STATUS_PUBLICADO = "PUBLICADO"
+    STATUS_CHOICES = [
+        (STATUS_ARMADO, "Armado"),
+        (STATUS_EN_AUDITORIA, "En auditoría"),
+        (STATUS_OBSERVADO, "Observado"),
+        (STATUS_APROBADO, "Aprobado"),
+        (STATUS_POR_PUBLICAR, "Por publicar"),
+        (STATUS_PUBLICADO, "Publicado"),
+    ]
+
+    date = models.DateField(unique=True)
+    name = models.CharField(max_length=120)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_ARMADO)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="created_sustentation_groups",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    @staticmethod
+    def name_for_date(d) -> str:
+        # dd.mm.yyyy (con tilde en sustentacion para UI)
+        return f"SUSTENTACIÓN {d.strftime('%d.%m.%Y')}"
+
+    def save(self, *args, **kwargs):
+        if self.date and not (self.name or "").strip():
+            self.name = self.name_for_date(self.date)
+        super().save(*args, **kwargs)
+
+    def compute_status_from_records(self) -> str:
+        statuses = set(self.records.values_list("status", flat=True))
+        if not statuses:
+            return self.STATUS_ARMADO
+        if statuses == {ThesisRecord.STATUS_PUBLICADO}:
+            return self.STATUS_PUBLICADO
+        if any(s in {ThesisRecord.STATUS_POR_PUBLICAR, ThesisRecord.STATUS_PUBLICADO} for s in statuses):
+            return self.STATUS_POR_PUBLICAR
+        if statuses == {ThesisRecord.STATUS_APROBADO}:
+            return self.STATUS_APROBADO
+        if ThesisRecord.STATUS_OBSERVADO in statuses:
+            return self.STATUS_OBSERVADO
+        if ThesisRecord.STATUS_EN_AUDITORIA in statuses:
+            return self.STATUS_EN_AUDITORIA
+        return self.STATUS_ARMADO
+
+    def recompute_status(self, save: bool = True) -> str:
+        new_status = self.compute_status_from_records()
+        if new_status != self.status:
+            self.status = new_status
+            if save:
+                self.save(update_fields=["status", "updated_at"])
+        return self.status
+
+
 class ThesisRecord(models.Model):
     STATUS_BORRADOR = "BORRADOR"
     STATUS_EN_AUDITORIA = "EN_AUDITORIA"
     STATUS_OBSERVADO = "OBSERVADO"
     STATUS_APROBADO = "APROBADO"
-    STATUS_INCLUIDO_EN_LOTE = "INCLUIDO_EN_LOTE"
+    STATUS_POR_PUBLICAR = "POR_PUBLICAR"
+    STATUS_PUBLICADO = "PUBLICADO"
     STATUS_CHOICES = [
         (STATUS_BORRADOR, "Borrador"),
         (STATUS_EN_AUDITORIA, "En auditoría"),
         (STATUS_OBSERVADO, "Observado"),
         (STATUS_APROBADO, "Aprobado"),
-        (STATUS_INCLUIDO_EN_LOTE, "Incluido en lote"),
+        (STATUS_POR_PUBLICAR, "Por publicar"),
+        (STATUS_PUBLICADO, "Publicado"),
     ]
 
     nro = models.PositiveIntegerField(unique=True, editable=False)
+    group = models.ForeignKey(
+        SustentationGroup,
+        on_delete=models.PROTECT,
+        related_name="records",
+        null=False,
+        blank=False,
+    )
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default=STATUS_BORRADOR)
     career = models.ForeignKey(CareerConfig, on_delete=models.PROTECT, null=True, blank=True)
 
@@ -41,9 +120,37 @@ class ThesisRecord(models.Model):
     asesor_nombre = models.CharField(max_length=255, blank=True)
     asesor_dni = models.CharField(max_length=20, blank=True)
     asesor_orcid = models.CharField(max_length=255, blank=True)
+    asesor_ref = models.ForeignKey(
+        AdvisorConfig,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="records",
+    )
     jurado1 = models.CharField(max_length=255, blank=True)
+    jurado1_ref = models.ForeignKey(
+        JuryMemberConfig,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="records_jurado1",
+    )
     jurado2 = models.CharField(max_length=255, blank=True)
+    jurado2_ref = models.ForeignKey(
+        JuryMemberConfig,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="records_jurado2",
+    )
     jurado3 = models.CharField(max_length=255, blank=True)
+    jurado3_ref = models.ForeignKey(
+        JuryMemberConfig,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="records_jurado3",
+    )
     resumen = models.TextField(blank=True)
     keywords_raw = models.TextField(blank=True)
 
@@ -64,6 +171,9 @@ class ThesisRecord(models.Model):
     )
     approved_at = models.DateTimeField(null=True, blank=True)
 
+    dspace_handle = models.CharField(max_length=255, blank=True)
+    dspace_url = models.CharField(max_length=500, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -78,7 +188,6 @@ class ThesisRecord(models.Model):
         authors = [
             self.autor1_nombre.strip(),
             self.autor2_nombre.strip(),
-            self.autor3_nombre.strip(),
         ]
         authors = [a for a in authors if a]
         return " - ".join(authors)
@@ -95,8 +204,11 @@ class ThesisRecord(models.Model):
         super().save(*args, **kwargs)
 
     def can_edit(self, user) -> bool:
-        # Regla de negocio: una vez enviado a auditoria o aprobado/incluido en lote,
-        # el registro no debe modificarse (metadatos ni archivos) para evitar inconsistencias.
+        # Regla de negocio: el auditor nunca edita registros (solo audita).
+        # Una vez enviado a auditoria o aprobado/incluido en lote, tampoco se edita
+        # para evitar inconsistencias (metadatos/archivos).
+        if not user or getattr(user, "role", None) == "auditor":
+            return False
         return self.status in [self.STATUS_BORRADOR, self.STATUS_OBSERVADO]
 
     def mark_submitted(self, user):
@@ -160,11 +272,13 @@ class AuditEvent(models.Model):
     ACTION_OBSERVE = "observe"
     ACTION_RESUBMIT = "resubmit"
     ACTION_APPROVE = "approve"
+    ACTION_PUBLISH = "publish"
     ACTION_CHOICES = [
-        (ACTION_SEND, "Enviar"),
-        (ACTION_OBSERVE, "Observar"),
-        (ACTION_RESUBMIT, "Reenviar"),
-        (ACTION_APPROVE, "Aprobar"),
+        (ACTION_SEND, "Enviado a auditoría"),
+        (ACTION_OBSERVE, "Observado"),
+        (ACTION_RESUBMIT, "Reenviado a auditoría"),
+        (ACTION_APPROVE, "Aprobado"),
+        (ACTION_PUBLISH, "Publicado"),
     ]
 
     record = models.ForeignKey(ThesisRecord, on_delete=models.CASCADE, related_name="audit_events")

@@ -1,16 +1,9 @@
 from django import forms
 
-from registry.models import ThesisRecord
 
-
-class BatchCreateForm(forms.Form):
-    records = forms.ModelMultipleChoiceField(
-        queryset=ThesisRecord.objects.none(),
-        widget=forms.CheckboxSelectMultiple,
-        required=True,
-        label="Registros aprobados",
+class DspaceLinksUploadForm(forms.Form):
+    links_file = forms.FileField(
+        label="Archivo de enlaces (JSON)",
+        help_text='JSON con enlaces por NRO. Ej: {"001": "https://.../handle/20.500.../123"}',
+        widget=forms.FileInput(attrs={"class": "form-control", "accept": "application/json"}),
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["records"].queryset = ThesisRecord.objects.filter(status=ThesisRecord.STATUS_APROBADO).order_by("nro")

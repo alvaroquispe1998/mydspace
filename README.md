@@ -5,15 +5,18 @@ Aplicacion web para registrar tesis, auditar registros y generar lotes SAF para 
 ## Modulos implementados
 - `accounts`: login, roles (`cargador`, `auditor`) y gestion de usuarios.
 - `registry`: registro de tesis, archivos y flujo de auditoria.
-- `appconfig`: configuracion de carreras (`career_map`), licencias versionadas y parametros.
+- `appconfig`: configuracion de carreras, asesores, jurados, licencias versionadas y parametros.
 - `saf`: lotes y generacion de paquetes SAF con ZIP de salida.
 
 ## Flujo funcional
-1. Cargador crea registro y sube archivos (tesis, formulario(s), turnitin).
-2. Cargador envia a auditoria.
-3. Auditor observa o aprueba.
-4. Auditor crea lote SAF desde aprobados y genera salida.
-5. Descarga ZIP del lote para importacion en servidor DSpace.
+1. Cargador crea un **grupo de sustentación** (1 por día) y dentro crea los registros.
+2. Cargador sube archivos por registro (tesis, formulario(s), turnitin).
+3. Cargador **envía el grupo** a auditoría (valida que todos estén listos).
+4. Auditor revisa **por registro**: observa o aprueba.
+5. Cuando **todos los registros del grupo están APROBADO**, el auditor crea el **lote SAF del grupo** y genera el ZIP.
+6. Al generar SAF, los registros pasan a **POR PUBLICAR**.
+7. En el servidor DSpace se importa el ZIP y luego se genera `dspace_links.json` desde los `mapfiles`.
+8. En la web, el auditor sube `dspace_links.json` en el lote para marcar como **PUBLICADO** y habilitar "Ver publicación".
 
 ## Requisitos
 - Python 3.12+

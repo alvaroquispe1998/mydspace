@@ -70,7 +70,6 @@ def validate_record_for_submission(record: ThesisRecord) -> List[str]:
 
     _validate_dni_if_present(record.autor1_dni.strip(), "AUTOR1_DNI", errors)
     _validate_dni_if_present(record.autor2_dni.strip(), "AUTOR2_DNI", errors)
-    _validate_dni_if_present(record.autor3_dni.strip(), "AUTOR3_DNI", errors)
     _validate_dni_if_present(record.asesor_dni.strip(), "ASESOR_DNI", errors)
 
     if record.asesor_orcid.strip() and not ORCID_RE.match(record.asesor_orcid.strip()):

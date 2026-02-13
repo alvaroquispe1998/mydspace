@@ -1,6 +1,21 @@
+import re
+
 from django import forms
 
-from appconfig.models import CareerConfig, LicenseVersion, SystemConfig
+from appconfig.models import AdvisorConfig, CareerConfig, JuryMemberConfig, LicenseVersion, SystemConfig
+
+ORCID_RE = re.compile(r"^https?://orcid\.org/\d{4}-\d{4}-\d{4}-\d{4}$", re.IGNORECASE)
+
+
+def _validate_person_name(value: str, label: str):
+    value = (value or "").strip()
+    if not value:
+        return
+    if "," not in value:
+        raise forms.ValidationError(f"{label} debe estar en formato 'Apellidos, Nombres'.")
+    left, right = [p.strip() for p in value.split(",", 1)]
+    if not left or not right:
+        raise forms.ValidationError(f"{label} debe incluir apellidos y nombres separados por coma.")
 
 
 class CareerConfigForm(forms.ModelForm):
@@ -54,4 +69,50 @@ class SystemConfigForm(forms.ModelForm):
             "key": forms.TextInput(attrs={"class": "form-control"}),
             "value": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+
+class AdvisorConfigForm(forms.ModelForm):
+    def clean(self):
+        cleaned = super().clean()
+        nombre = (cleaned.get("nombre") or "").strip()
+        if nombre:
+            _validate_person_name(nombre, "Nombre")
+        dni = (cleaned.get("dni") or "").strip()
+        if dni and not dni.isdigit():
+            self.add_error("dni", "Debe contener solo digitos.")
+        orcid = (cleaned.get("orcid") or "").strip()
+        if orcid and not ORCID_RE.match(orcid):
+            self.add_error("orcid", "Formato invalido. Ej: https://orcid.org/0000-0000-0000-0000")
+        return cleaned
+
+    class Meta:
+        model = AdvisorConfig
+        fields = ["nombre", "dni", "orcid", "active"]
+        widgets = {
+            "nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "dni": forms.TextInput(attrs={"class": "form-control"}),
+            "orcid": forms.TextInput(attrs={"class": "form-control"}),
+            "active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+
+class JuryMemberConfigForm(forms.ModelForm):
+    def clean(self):
+        cleaned = super().clean()
+        nombre = (cleaned.get("nombre") or "").strip()
+        if nombre:
+            _validate_person_name(nombre, "Nombre")
+        dni = (cleaned.get("dni") or "").strip()
+        if dni and not dni.isdigit():
+            self.add_error("dni", "Debe contener solo digitos.")
+        return cleaned
+
+    class Meta:
+        model = JuryMemberConfig
+        fields = ["nombre", "dni", "active"]
+        widgets = {
+            "nombre": forms.TextInput(attrs={"class": "form-control"}),
+            "dni": forms.TextInput(attrs={"class": "form-control"}),
+            "active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }

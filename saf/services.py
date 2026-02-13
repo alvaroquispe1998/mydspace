@@ -234,22 +234,28 @@ def generate_saf_batch(batch: SafBatch) -> Tuple[bool, str]:
     batch.log_text = "Iniciando generación SAF..."
     batch.save(update_fields=["status", "log_text", "updated_at"])
 
+    # Mapea carpetas de carrera -> handle para generar scripts de importación.
+    career_targets = {}
+
     items = batch.items.select_related("record__career").prefetch_related("record__files").all()
     for item in items:
         record = item.record
         item_folder = f"item_{record.nro:03d}"
         item.item_folder_name = item_folder
         try:
-            if record.status not in [ThesisRecord.STATUS_APROBADO, ThesisRecord.STATUS_INCLUIDO_EN_LOTE]:
+            if record.status not in [ThesisRecord.STATUS_APROBADO, ThesisRecord.STATUS_POR_PUBLICAR]:
                 raise ValueError("Registro no está aprobado para SAF.")
 
             thesis_src = _pick_thesis_file(record)
             if not thesis_src:
                 raise ValueError("No existe tesis en PDF o DOCX.")
 
-            career_dir = output_root / _career_folder_name(record)
+            career_folder = _career_folder_name(record)
+            career_dir = output_root / career_folder
             item_dir = career_dir / item_folder
             item_dir.mkdir(parents=True, exist_ok=True)
+            if record.career and record.career.handle:
+                career_targets[career_folder] = record.career.handle.strip()
 
             thesis_out = item_dir / "tesis.pdf"
             thesis_src_path = Path(thesis_src.file.path)
@@ -291,7 +297,7 @@ def generate_saf_batch(batch: SafBatch) -> Tuple[bool, str]:
             add("dc", "type", "", "info:eu-repo/semantics/bachelorThesis")
             add("dc", "rights", "", "info:eu-repo/semantics/openAccess")
 
-            for i in [1, 2, 3]:
+            for i in [1, 2]:
                 author = getattr(record, f"autor{i}_nombre", "").strip()
                 dni = normalize_integer_like(getattr(record, f"autor{i}_dni", ""))
                 if author:
@@ -353,7 +359,7 @@ def generate_saf_batch(batch: SafBatch) -> Tuple[bool, str]:
             item.detail = f"{thesis_status} | adjuntos={len(attached)}"
             item.save(update_fields=["item_folder_name", "result", "detail"])
 
-            record.status = ThesisRecord.STATUS_INCLUIDO_EN_LOTE
+            record.status = ThesisRecord.STATUS_POR_PUBLICAR
             record.save(update_fields=["status", "updated_at"])
             report_rows.append([f"{record.nro:03d}", "OK", item.detail])
             log_lines.append(f"[OK] {record.nro:03d}")
@@ -371,6 +377,11 @@ def generate_saf_batch(batch: SafBatch) -> Tuple[bool, str]:
         writer.writerow(["NRO", "STATUS", "DETAIL"])
         writer.writerows(report_rows)
 
+    # Scripts .bat para importar a DSpace (incluidos en el ZIP).
+    if career_targets:
+        targets = sorted(career_targets.items(), key=lambda x: x[0])
+        _generate_import_bats(output_root, targets)
+
     zip_path = output_root.parent / f"{batch.batch_code}.zip"
     if zip_path.exists():
         zip_path.unlink()
@@ -387,3 +398,290 @@ def generate_saf_batch(batch: SafBatch) -> Tuple[bool, str]:
     if has_errors:
         return False, "Lote generado con errores."
     return True, "Lote generado correctamente."
+
+
+def generate_batch_scripts_only(batch: SafBatch) -> Tuple[bool, str]:
+    """
+    Generate/refresh only the helper scripts (.bat/.ps1) inside an existing SAF folder
+    and update the ZIP, without re-generating items or changing record statuses.
+    """
+    output_root = Path(batch.output_path) if batch.output_path else (Path(settings.SAF_OUTPUT_ROOT) / batch.batch_code)
+    if not output_root.exists() or not output_root.is_dir():
+        return False, "No se encontró la carpeta de salida del lote."
+
+    # Rebuild targets from batch items (career folder name -> handle).
+    targets = {}
+    items = batch.items.select_related("record__career").all()
+    for it in items:
+        rec = it.record
+        if not rec.career or not rec.career.handle:
+            continue
+        targets[_career_folder_name(rec)] = rec.career.handle.strip()
+
+    if targets:
+        _generate_import_bats(output_root, sorted(targets.items(), key=lambda x: x[0]))
+
+    # Refresh ZIP to include the scripts.
+    zip_path = Path(batch.zip_path) if batch.zip_path else (output_root.parent / f"{batch.batch_code}.zip")
+    if zip_path.exists():
+        zip_path.unlink()
+    zip_directory(output_root, zip_path)
+    batch.zip_path = str(zip_path)
+    batch.save(update_fields=["zip_path", "updated_at"])
+    return True, "Scripts actualizados y ZIP regenerado."
+
+
+def _bat_lines(lines: List[str]) -> str:
+    # CRLF to behave well on Windows.
+    return "\r\n".join(lines) + "\r\n"
+
+
+def _render_importar_todo_bat(dspace_bin: str, eperson: str, targets: List[Tuple[str, str]]) -> str:
+    lines = [
+        "@echo off",
+        "setlocal EnableExtensions EnableDelayedExpansion",
+        "",
+        f'set "DSPACE_BIN={dspace_bin}"',
+        f'set "EPERSON={eperson}"',
+        'set "BASE_DIR=%~dp0"',
+        'set "MAP_DIR=%BASE_DIR%mapfiles"',
+        'set "LOG_DIR=%BASE_DIR%logs"',
+        "",
+        "echo ============================================================",
+        "echo Importar todo el lote (una carrera por vez)",
+        "echo BASE: %BASE_DIR%",
+        "echo ============================================================",
+        "",
+        'if not exist "%MAP_DIR%" mkdir "%MAP_DIR%"',
+        'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"',
+        "",
+        'set "MASTER_LOG=%LOG_DIR%\\importar_todo.log"',
+        'echo ============================================================>> "%MASTER_LOG%"',
+        'echo [%date% %time%] INICIO importar_todo>> "%MASTER_LOG%"',
+        'echo BASE: "%BASE_DIR%">> "%MASTER_LOG%"',
+        'echo DSPACE_BIN: "%DSPACE_BIN%">> "%MASTER_LOG%"',
+        "",
+        'cd /d "%DSPACE_BIN%"',
+        "if errorlevel 1 (",
+        '  echo ERROR: No se pudo entrar a "%DSPACE_BIN%"',
+        '  echo ERROR: No se pudo entrar a "%DSPACE_BIN%">> "%MASTER_LOG%"',
+        "  exit /b 1",
+        ")",
+        "",
+    ]
+    for career_folder, handle in targets:
+        lines.extend(
+            [
+                f'set "CAREER={career_folder}"',
+                f'set "HANDLE={handle}"',
+                'set "SOURCE_DIR=%BASE_DIR%%CAREER%"',
+                'set "MAP_FILE=%MAP_DIR%\\map_%CAREER%.map"',
+                'set "LOG_FILE=%LOG_DIR%\\import_%CAREER%.log"',
+                "",
+                'if not exist "%SOURCE_DIR%" (',
+                '  echo ERROR: No existe carpeta SAF: "%SOURCE_DIR%"',
+                '  echo [ERROR] %CAREER% - no existe "%SOURCE_DIR%">> "%MASTER_LOG%"',
+                "  goto end",
+                ")",
+                "",
+                'if exist "%MAP_FILE%" (',
+                '  set "MODE=-r"',
+                ") else (",
+                '  set "MODE=-a"',
+                ")",
+                "",
+                'echo [%date% %time%] Importando %CAREER% modo=%MODE% handle=%HANDLE%>> "%MASTER_LOG%"',
+                'call dspace import %MODE% -e "%EPERSON%" -c "%HANDLE%" -s "%SOURCE_DIR%" -m "%MAP_FILE%" >> "%LOG_FILE%" 2>&1',
+                "if errorlevel 1 (",
+                '  echo [ERROR] %CAREER% (ver "%LOG_FILE%")',
+                '  echo [ERROR] %CAREER%>> "%MASTER_LOG%"',
+                "  goto end",
+                ") else (",
+                '  echo [OK] %CAREER%',
+                '  echo [OK] %CAREER%>> "%MASTER_LOG%"',
+                ")",
+                "",
+            ]
+        )
+        lines.append("")
+    lines.extend(
+        [
+            ":end",
+            "echo.",
+            'echo Fin. Log: "%MASTER_LOG%"',
+            'echo [%date% %time%] FIN importar_todo>> "%MASTER_LOG%"',
+            "pause",
+            "exit /b 0",
+        ]
+    )
+    return _bat_lines(lines)
+
+
+def _render_career_bat(dspace_bin: str, eperson: str, handle: str) -> str:
+    lines = [
+        "@echo off",
+        "setlocal EnableExtensions EnableDelayedExpansion",
+        "",
+        f'set "DSPACE_BIN={dspace_bin}"',
+        f'set "EPERSON={eperson}"',
+        'set "SOURCE_DIR=%~dp0"',
+        'set "MAP_DIR=%~dp0..\\mapfiles"',
+        'set "LOG_DIR=%~dp0..\\logs"',
+        f'set "HANDLE={handle}"',
+        "",
+        'if not exist "%MAP_DIR%" mkdir "%MAP_DIR%"',
+        'if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"',
+        "",
+        'for %%I in ("%~dp0.") do set "CAREER=%%~nxI"',
+        'set "MAP_FILE=%MAP_DIR%\\map_%CAREER%.map"',
+        'set "LOG_FILE=%LOG_DIR%\\import_%CAREER%.log"',
+        "",
+        'if exist "%MAP_FILE%" (',
+        '  set "MODE=-r"',
+        ") else (",
+        '  set "MODE=-a"',
+        ")",
+        "",
+        'cd /d "%DSPACE_BIN%"',
+        "if errorlevel 1 (",
+        '  echo ERROR: No se pudo entrar a "%DSPACE_BIN%">> "%LOG_FILE%"',
+        "  exit /b 1",
+        ")",
+        "",
+        # DSpace CLI compatibility: use short flags (-a/-r -e -c -s -m). Many installs do not support long flags.
+        'call dspace import %MODE% -e "%EPERSON%" -c "%HANDLE%" -s "%SOURCE_DIR%" -m "%MAP_FILE%" >> "%LOG_FILE%" 2>&1',
+        "if errorlevel 1 (",
+        '  echo ERROR: Fallo importacion. Revisa "%LOG_FILE%"',
+        "  exit /b 1",
+        ")",
+        "",
+        "echo OK: Importacion completada.",
+        "pause",
+        "exit /b 0",
+    ]
+    return _bat_lines(lines)
+
+
+def _generate_import_bats(output_root: Path, targets: List[Tuple[str, str]]):
+    # Defaults aligned with build_saf.py; can be edited by the operator on the server.
+    dspace_bin = getattr(settings, "DSPACE_BIN_PATH", r"C:\dspace\bin") or r"C:\dspace\bin"
+    eperson = getattr(settings, "DSPACE_IMPORT_EPERSON", "repositorio@autonomadeica.edu.pe") or "repositorio@autonomadeica.edu.pe"
+
+    (output_root / "importar_todo.bat").write_text(_render_importar_todo_bat(dspace_bin, eperson, targets), encoding="ascii")
+
+    for career_folder, handle in targets:
+        career_dir = output_root / career_folder
+        if not career_dir.exists() or not career_dir.is_dir():
+            continue
+        (career_dir / "importar.bat").write_text(_render_career_bat(dspace_bin, eperson, handle), encoding="ascii")
+
+    # Helper to build a JSON mapping NRO -> handle/url after running DSpace import.
+    (output_root / "export_links_cmd.bat").write_text(
+        _bat_lines(
+            [
+                "@echo off",
+                "setlocal EnableExtensions EnableDelayedExpansion",
+                "cd /d \"%~dp0\"",
+                "",
+                "set \"BASEURL=%~1\"",
+                "if not \"%BASEURL%\"==\"\" (",
+                "  if \"%BASEURL:~-1%\"==\"/\" set \"BASEURL=%BASEURL:~0,-1%\"",
+                ")",
+                "",
+                "echo export_links_cmd.bat v2026-02-13",
+                "echo Carpeta: %CD%",
+                "",
+                "if not exist \"mapfiles\" (",
+                "  echo ERROR: falta carpeta mapfiles",
+                "  exit /b 2",
+                ")",
+                "",
+                "if not exist \"logs\" mkdir \"logs\" >nul 2>nul",
+                "set \"TMP=logs\\_links_tmp.txt\"",
+                "set \"TMPS=logs\\_links_tmp_sorted.txt\"",
+                "del \"%TMP%\" >nul 2>nul",
+                "del \"%TMPS%\" >nul 2>nul",
+                "",
+                "for %%F in (\"mapfiles\\map_*.map\") do (",
+                "  if exist \"%%~fF\" (",
+                "    for /f \"usebackq tokens=1,2\" %%A in (\"%%~fF\") do (",
+                "      set \"ITEM=%%A\"",
+                "      set \"HANDLE=%%B\"",
+                "      if not \"!HANDLE!\"==\"\" (",
+                "        for /f \"tokens=2 delims=_\" %%N in (\"!ITEM!\") do set \"NRO=%%N\"",
+                "        set \"NRO=000!NRO!\"",
+                "        set \"NRO=!NRO:~-3!\"",
+                "        echo !NRO!^|!HANDLE!>> \"%TMP%\"",
+                "      )",
+                "    )",
+                "  )",
+                ")",
+                "",
+                "if not exist \"%TMP%\" (",
+                "  echo ERROR: no se encontraron entradas en mapfiles\\map_*.map",
+                "  exit /b 3",
+                ")",
+                "",
+                "sort \"%TMP%\" /o \"%TMPS%\"",
+                "if errorlevel 1 (",
+                "  echo ERROR: no se pudo ordenar %TMP%",
+                "  exit /b 4",
+                ")",
+                "",
+                "set \"OUT=dspace_links.json\"",
+                "> \"%OUT%\" echo {",
+                "set \"FIRST=1\"",
+                "for /f \"usebackq tokens=1,2 delims=|\" %%N in (\"%TMPS%\") do (",
+                "  set \"N=%%N\"",
+                "  set \"H=%%O\"",
+                "  set \"URL=\"",
+                "  if not \"%BASEURL%\"==\"\" set \"URL=%BASEURL%/handle/%%O\"",
+                "  if \"!FIRST!\"==\"0\" (",
+                "    >> \"%OUT%\" echo   , \"%%N\": {\"handle\":\"%%O\",\"url\":\"!URL!\"}",
+                "  ) else (",
+                "    >> \"%OUT%\" echo   \"%%N\": {\"handle\":\"%%O\",\"url\":\"!URL!\"}",
+                "    set \"FIRST=0\"",
+                "  )",
+                ")",
+                ">> \"%OUT%\" echo }",
+                "",
+                "echo OK: generado %OUT%",
+                "exit /b 0",
+                "",
+            ]
+        ),
+        encoding="ascii",
+    )
+    # Friendly entrypoints (double-click) that won't close immediately.
+    (output_root / "export_links.bat").write_text(
+        _bat_lines(
+            [
+                "@echo off",
+                "setlocal",
+                "cd /d \"%~dp0\"",
+                "call \"%~dp0export_links_cmd.bat\" %*",
+                "echo.",
+                "echo (Si hubo error, revisa logs\\_links_tmp.txt)",
+                "pause",
+                "exit /b %ERRORLEVEL%",
+                "",
+            ]
+        ),
+        encoding="ascii",
+    )
+    (output_root / "export_links_uai.bat").write_text(
+        _bat_lines(
+            [
+                "@echo off",
+                "setlocal",
+                "cd /d \"%~dp0\"",
+                "call \"%~dp0export_links_cmd.bat\" \"https://repositorio.autonomadeica.edu.pe\"",
+                "echo.",
+                "echo (Si hubo error, revisa logs\\_links_tmp.txt)",
+                "pause",
+                "exit /b %ERRORLEVEL%",
+                "",
+            ]
+        ),
+        encoding="ascii",
+    )

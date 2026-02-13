@@ -1,23 +1,85 @@
 {% extends 'base.html' %}
 {% block title %}Lotes SAF{% endblock %}
 {% block content %}
+<style>
+  .section-head { display:flex; gap:12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+  .section-head h3 { margin: 0; }
+  .muted { color:#64748b; font-size: 13px; }
+
+  .table-shell {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .table-wrap { overflow: auto; }
+  .nice-table { border-collapse: separate; border-spacing: 0; }
+  .nice-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .nice-table tbody tr:hover { background: #f8fafc; }
+  .btn-sm { padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 800; }
+
+  .batch-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
+    color: #334155;
+    white-space: nowrap;
+  }
+  .batch-badge[data-bstatus="CREATED"] { background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }
+  .batch-badge[data-bstatus="RUNNING"] { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+  .batch-badge[data-bstatus="DONE"] { background:#dcfce7; border-color:#bbf7d0; color:#065f46; }
+  .batch-badge[data-bstatus="FAILED"] { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+</style>
+
 <div class="card">
-  <h3>Crear lote desde aprobados</h3>
-  <form method="post" action="{% url 'saf:batches_list' %}">
-    {% csrf_token %}
-    {{ form.records }}
-    <button class="btn btn-success" type="submit">Crear lote</button>
-  </form>
-</div>
-<div class="card">
-  <h3>Lotes generados</h3>
-  <table>
-    <thead><tr><th>Codigo</th><th>Estado</th><th>Creado por</th><th>Fecha</th><th></th></tr></thead>
-    <tbody>
-      {% for b in batches %}
-      <tr><td>{{ b.batch_code }}</td><td>{{ b.status }}</td><td>{{ b.created_by.username }}</td><td>{{ b.created_at }}</td><td><a class="btn btn-primary" href="{% url 'saf:batches_detail' b.id %}">Ver</a></td></tr>
-      {% empty %}<tr><td colspan="5">Sin lotes</td></tr>{% endfor %}
-    </tbody>
-  </table>
+  <div class="section-head">
+    <h3>Lotes SAF</h3>
+    <div class="muted">{% if batches %}{{ batches|length }} lote(s){% else %}Sin lotes{% endif %}</div>
+  </div>
+
+  <div class="muted" style="margin-bottom:12px;">
+    Los lotes SAF se crean desde una <a href="{% url 'registry:groups_list' %}">sustentación</a> (grupo).
+  </div>
+
+  <div class="table-shell">
+    <div class="table-wrap">
+      <table class="nice-table">
+        <thead><tr><th>Código</th><th>Grupo</th><th>Estado</th><th>Creado por</th><th>Fecha</th><th></th></tr></thead>
+        <tbody>
+          {% for b in batches %}
+          <tr>
+            <td><strong>{{ b.batch_code }}</strong></td>
+            <td>
+              {% if b.group %}
+                <a href="{% url 'registry:groups_detail' b.group.id %}">{{ b.group.name }}</a>
+              {% else %}
+                <span class="muted">-</span>
+              {% endif %}
+            </td>
+            <td><span class="batch-badge" data-bstatus="{{ b.status }}">{{ b.get_status_display }}</span></td>
+            <td>{{ b.created_by.username }}</td>
+            <td style="white-space:nowrap;">{{ b.created_at }}</td>
+            <td style="text-align:right;"><a class="btn btn-primary btn-sm" href="{% url 'saf:batches_detail' b.id %}">Ver</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted">Sin lotes.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}

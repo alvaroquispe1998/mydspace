@@ -17,6 +17,13 @@ class SafBatch(models.Model):
     ]
 
     batch_code = models.CharField(max_length=100, unique=True)
+    group = models.ForeignKey(
+        "registry.SustentationGroup",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="batches",
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_CREATED)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="saf_batches")
     generated_at = models.DateTimeField(null=True, blank=True)

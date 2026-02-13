@@ -18,7 +18,11 @@
 
 <div class="card">
   <h2 style="margin-top:0">{{ title }}</h2>
-  <p class="section-sub">Completa los datos en formato claro para evitar observaciones en auditoría.</p>
+  {% if read_only %}
+    <p class="section-sub">Vista solo lectura para auditoría (no se guardan cambios aquí).</p>
+  {% else %}
+    <p class="section-sub">Completa los datos en formato claro para evitar observaciones en auditoría.</p>
+  {% endif %}
   <form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}
@@ -58,11 +62,13 @@
         </div>
       </div>
 
-      <div class="inline-actions" id="author2-action">
-        <button class="btn-chip" type="button" id="btn-add-author2">+ Agregar Autor 2</button>
-      </div>
+      {% if not read_only %}
+        <div class="inline-actions" id="author2-action">
+          <button class="btn-chip" type="button" id="btn-add-author2">+ Agregar Autor 2</button>
+        </div>
+      {% endif %}
 
-      <div id="author2-block" class="form-grid-2 hidden-block">
+      <div id="author2-block" class="form-grid-2 {% if not read_only %}hidden-block{% endif %}">
         <div class="form-row">
           {{ form.autor2_dni.label_tag }}
           {{ form.autor2_dni }}
@@ -75,28 +81,16 @@
           {% if form.autor2_nombre.errors %}<div class="field-err">{{ form.autor2_nombre.errors|join:', ' }}</div>{% endif %}
         </div>
       </div>
-
-      <div class="inline-actions hidden-block" id="author3-action">
-        <button class="btn-chip" type="button" id="btn-add-author3">+ Agregar Autor 3</button>
-      </div>
-
-      <div id="author3-block" class="form-grid-2 hidden-block">
-        <div class="form-row">
-          {{ form.autor3_dni.label_tag }}
-          {{ form.autor3_dni }}
-          {% if form.autor3_dni.errors %}<div class="field-err">{{ form.autor3_dni.errors|join:', ' }}</div>{% endif %}
-        </div>
-        <div class="form-row">
-          {{ form.autor3_nombre.label_tag }}
-          {{ form.autor3_nombre }}
-          {% if form.autor3_nombre.help_text %}<div class="field-help">{{ form.autor3_nombre.help_text }}</div>{% endif %}
-          {% if form.autor3_nombre.errors %}<div class="field-err">{{ form.autor3_nombre.errors|join:', ' }}</div>{% endif %}
-        </div>
-      </div>
     </div>
 
     <div class="section-box">
       <h3 class="section-title">Asesor</h3>
+      <div class="form-row">
+        {{ form.asesor_ref.label_tag }}
+        {{ form.asesor_ref }}
+        {% if form.asesor_ref.help_text %}<div class="field-help">{{ form.asesor_ref.help_text }}</div>{% endif %}
+        {% if form.asesor_ref.errors %}<div class="field-err">{{ form.asesor_ref.errors|join:', ' }}</div>{% endif %}
+      </div>
       <div class="form-grid-3">
         <div class="form-row">
           {{ form.asesor_dni.label_tag }}
@@ -123,6 +117,12 @@
 
       <div class="form-grid-2">
         <div class="form-row">
+          {{ form.jurado1_ref.label_tag }}
+          {{ form.jurado1_ref }}
+          {% if form.jurado1_ref.help_text %}<div class="field-help">{{ form.jurado1_ref.help_text }}</div>{% endif %}
+          {% if form.jurado1_ref.errors %}<div class="field-err">{{ form.jurado1_ref.errors|join:', ' }}</div>{% endif %}
+        </div>
+        <div class="form-row">
           {{ form.jurado1.label_tag }}
           {{ form.jurado1 }}
           {% if form.jurado1.help_text %}<div class="field-help">{{ form.jurado1.help_text }}</div>{% endif %}
@@ -130,11 +130,19 @@
         </div>
       </div>
 
-      <div class="inline-actions" id="jurado2-action">
-        <button class="btn-chip" type="button" id="btn-add-jurado2">+ Agregar Jurado 2</button>
-      </div>
+      {% if not read_only %}
+        <div class="inline-actions" id="jurado2-action">
+          <button class="btn-chip" type="button" id="btn-add-jurado2">+ Agregar Jurado 2</button>
+        </div>
+      {% endif %}
 
-      <div id="jurado2-block" class="form-grid-2 hidden-block">
+      <div id="jurado2-block" class="form-grid-2 {% if not read_only %}hidden-block{% endif %}">
+        <div class="form-row">
+          {{ form.jurado2_ref.label_tag }}
+          {{ form.jurado2_ref }}
+          {% if form.jurado2_ref.help_text %}<div class="field-help">{{ form.jurado2_ref.help_text }}</div>{% endif %}
+          {% if form.jurado2_ref.errors %}<div class="field-err">{{ form.jurado2_ref.errors|join:', ' }}</div>{% endif %}
+        </div>
         <div class="form-row">
           {{ form.jurado2.label_tag }}
           {{ form.jurado2 }}
@@ -143,11 +151,19 @@
         </div>
       </div>
 
-      <div class="inline-actions hidden-block" id="jurado3-action">
-        <button class="btn-chip" type="button" id="btn-add-jurado3">+ Agregar Jurado 3</button>
-      </div>
+      {% if not read_only %}
+        <div class="inline-actions hidden-block" id="jurado3-action">
+          <button class="btn-chip" type="button" id="btn-add-jurado3">+ Agregar Jurado 3</button>
+        </div>
+      {% endif %}
 
-      <div id="jurado3-block" class="form-grid-2 hidden-block">
+      <div id="jurado3-block" class="form-grid-2 {% if not read_only %}hidden-block{% endif %}">
+        <div class="form-row">
+          {{ form.jurado3_ref.label_tag }}
+          {{ form.jurado3_ref }}
+          {% if form.jurado3_ref.help_text %}<div class="field-help">{{ form.jurado3_ref.help_text }}</div>{% endif %}
+          {% if form.jurado3_ref.errors %}<div class="field-err">{{ form.jurado3_ref.errors|join:', ' }}</div>{% endif %}
+        </div>
         <div class="form-row">
           {{ form.jurado3.label_tag }}
           {{ form.jurado3 }}
@@ -174,18 +190,20 @@
       </div>
     </div>
 
-    <button class="btn btn-primary" type="submit">Guardar registro</button>
+    {% if not read_only %}
+      <button class="btn btn-primary" type="submit">Guardar registro</button>
+    {% endif %}
     {% if record %}<a class="btn btn-secondary" href="{% url 'registry:records_detail' record.id %}">Volver</a>{% endif %}
   </form>
 </div>
 
 <script>
+  {% if read_only %}
+    // Vista solo lectura: no mostrar lógica de "agregar" campos opcionales.
+  {% else %}
   const author2Block = document.getElementById("author2-block");
-  const author3Block = document.getElementById("author3-block");
   const author2Action = document.getElementById("author2-action");
-  const author3Action = document.getElementById("author3-action");
   const btnAuthor2 = document.getElementById("btn-add-author2");
-  const btnAuthor3 = document.getElementById("btn-add-author3");
 
   const jurado2Block = document.getElementById("jurado2-block");
   const jurado3Block = document.getElementById("jurado3-block");
@@ -212,12 +230,6 @@
   function showAuthor2() {
     show(author2Block, "grid");
     hide(author2Action);
-    show(author3Action, "flex");
-  }
-
-  function showAuthor3() {
-    show(author3Block, "grid");
-    hide(author3Action);
   }
 
   function showJurado2() {
@@ -232,20 +244,14 @@
   }
 
   btnAuthor2?.addEventListener("click", showAuthor2);
-  btnAuthor3?.addEventListener("click", showAuthor3);
   btnJurado2?.addEventListener("click", showJurado2);
   btnJurado3?.addEventListener("click", showJurado3);
 
   const hasAuthor2Data = hasValue("id_autor2_dni") || hasValue("id_autor2_nombre");
-  const hasAuthor3Data = hasValue("id_autor3_dni") || hasValue("id_autor3_nombre");
-  const hasJurado2Data = hasValue("id_jurado2");
-  const hasJurado3Data = hasValue("id_jurado3");
+  const hasJurado2Data = hasValue("id_jurado2") || hasValue("id_jurado2_ref");
+  const hasJurado3Data = hasValue("id_jurado3") || hasValue("id_jurado3_ref");
 
   if (hasAuthor2Data) showAuthor2();
-  if (hasAuthor3Data) {
-    showAuthor2();
-    showAuthor3();
-  }
   if (hasJurado2Data) showJurado2();
   if (hasJurado3Data) {
     showJurado2();
@@ -255,16 +261,13 @@
   {% if form.autor2_nombre.errors or form.autor2_dni.errors %}
     showAuthor2();
   {% endif %}
-  {% if form.autor3_nombre.errors or form.autor3_dni.errors %}
-    showAuthor2();
-    showAuthor3();
-  {% endif %}
-  {% if form.jurado2.errors %}
+  {% if form.jurado2.errors or form.jurado2_ref.errors %}
     showJurado2();
   {% endif %}
-  {% if form.jurado3.errors %}
+  {% if form.jurado3.errors or form.jurado3_ref.errors %}
     showJurado2();
     showJurado3();
+  {% endif %}
   {% endif %}
 </script>
 {% endblock %}

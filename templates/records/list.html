@@ -62,7 +62,7 @@
     <div class="filter-actions">
       <button class="btn btn-primary" type="submit">Filtrar</button>
       <a class="btn btn-secondary" href="{% url 'registry:records_list' %}">Limpiar</a>
-      <a class="btn btn-success" href="{% url 'registry:records_create' %}">Nuevo registro</a>
+      <a class="btn btn-success" href="{% url 'registry:groups_list' %}">Sustentaciones</a>
     </div>
   </form>
 </div>
@@ -86,12 +86,17 @@
         <td class="title-cell"><div class="title-cell-text">{{ r.titulo|default:'(sin título)' }}</div></td>
         <td>{{ r.authors_display|default:'-' }}</td>
         <td>{{ r.career.carrera_excel|default:'-' }}</td>
-        <td><span class="badge">{{ r.status }}</span></td>
+        <td><span class="status-badge" data-status="{{ r.status }}">{{ r.get_status_display|upper }}</span></td>
         <td>
           <div class="actions-col">
             <a class="btn btn-primary btn-sm" href="{% url 'registry:records_detail' r.id %}">Ver</a>
-            {% if request.user.role == 'auditor' or r.status == 'BORRADOR' or r.status == 'OBSERVADO' %}
-              <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_edit' r.id %}">Editar</a>
+            {% if r.dspace_url %}
+              <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+            {% endif %}
+            {% if request.user.role != 'auditor' %}
+              {% if r.status == 'BORRADOR' or r.status == 'OBSERVADO' %}
+                <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_edit' r.id %}">Editar</a>
+              {% endif %}
             {% endif %}
           </div>
         </td>

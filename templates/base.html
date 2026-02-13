@@ -31,6 +31,47 @@
     .msg.warning { background:#fef3c7; }
     .badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; background:#e2e8f0; }
 
+    /* Status + action chips (used across pages) */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid #e2e8f0;
+      background: #f1f5f9;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .status-badge[data-status="BORRADOR"] { background:#e0f2fe; border-color:#bae6fd; color:#075985; }
+    .status-badge[data-status="EN_AUDITORIA"] { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+    .status-badge[data-status="OBSERVADO"] { background:#fef3c7; border-color:#fde68a; color:#92400e; }
+    .status-badge[data-status="APROBADO"] { background:#dcfce7; border-color:#bbf7d0; color:#065f46; }
+    .status-badge[data-status="POR_PUBLICAR"] { background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }
+    .status-badge[data-status="PUBLICADO"] { background:#ecfeff; border-color:#a5f3fc; color:#155e75; }
+
+    .action-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+    .action-badge[data-action="send"], .action-badge[data-action="resubmit"] {
+      background:#fff7ed; border-color:#fed7aa; color:#9a3412;
+    }
+    .action-badge[data-action="observe"] { background:#fef3c7; border-color:#fde68a; color:#92400e; }
+    .action-badge[data-action="approve"] { background:#dcfce7; border-color:#bbf7d0; color:#065f46; }
+    .action-badge[data-action="publish"] { background:#ecfeff; border-color:#a5f3fc; color:#155e75; }
+
     /* Auth page layout (login) */
     body.auth-page {
       background:
@@ -47,10 +88,13 @@
   <div class="nav">
     <strong>SAF Platform</strong>
     <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'registry:groups_list' %}">Sustentaciones</a>
     <a href="{% url 'registry:records_list' %}">Registros</a>
     {% if request.user.role == 'auditor' %}
       <a href="{% url 'saf:batches_list' %}">Lotes SAF</a>
       <a href="{% url 'appconfig:careers_list' %}">Carreras</a>
+      <a href="{% url 'appconfig:advisors_list' %}">Asesores</a>
+      <a href="{% url 'appconfig:jurors_list' %}">Jurados</a>
       <a href="{% url 'appconfig:licenses_list' %}">Licencias</a>
       <a href="{% url 'appconfig:params_list' %}">Parametros</a>
       <a href="{% url 'accounts:users_list' %}">Usuarios</a>

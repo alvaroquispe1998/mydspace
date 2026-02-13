@@ -11,7 +11,7 @@ class ThesisFileInline(admin.TabularInline):
 class ThesisRecordAdmin(admin.ModelAdmin):
     list_display = ("nro", "titulo", "career", "status", "created_at")
     list_filter = ("status", "career")
-    search_fields = ("titulo", "autor1_nombre", "autor2_nombre", "autor3_nombre")
+    search_fields = ("titulo", "autor1_nombre", "autor2_nombre")
     inlines = [ThesisFileInline]
 
 
