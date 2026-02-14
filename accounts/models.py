@@ -4,9 +4,11 @@ from django.db import models
 
 class User(AbstractUser):
     ROLE_CARGADOR = "cargador"
+    ROLE_ASESOR = "asesor"
     ROLE_AUDITOR = "auditor"
     ROLE_CHOICES = [
         (ROLE_CARGADOR, "Cargador"),
+        (ROLE_ASESOR, "Asesor"),
         (ROLE_AUDITOR, "Auditor"),
     ]
 

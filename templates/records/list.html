@@ -93,8 +93,8 @@
             {% if r.dspace_url %}
               <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
             {% endif %}
-            {% if request.user.role != 'auditor' %}
-              {% if r.status == 'BORRADOR' or r.status == 'OBSERVADO' %}
+            {% if r.status == 'BORRADOR' or r.status == 'OBSERVADO' %}
+              {% if request.user.role == 'cargador' or request.user.role == 'asesor' or request.user.role == 'auditor' %}
                 <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_edit' r.id %}">Editar</a>
               {% endif %}
             {% endif %}

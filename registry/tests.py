@@ -28,19 +28,26 @@ class ThesisRecordValidationTests(TestCase):
         r.status = ThesisRecord.STATUS_POR_PUBLICAR
         self.assertFalse(r.can_edit(u))
 
-    def test_auditor_cannot_edit_in_any_status(self):
+    def test_auditor_can_edit_only_in_borrador_or_observado(self):
         auditor = User.objects.create(username="aud1", role=User.ROLE_AUDITOR)
         g = SustentationGroup.objects.create(date="2026-02-13", name="SUSTENTACIÓN 13.02.2026")
-        for st in [
-            ThesisRecord.STATUS_BORRADOR,
-            ThesisRecord.STATUS_OBSERVADO,
-            ThesisRecord.STATUS_EN_AUDITORIA,
-            ThesisRecord.STATUS_APROBADO,
-            ThesisRecord.STATUS_POR_PUBLICAR,
-            ThesisRecord.STATUS_PUBLICADO,
-        ]:
-            r = ThesisRecord.objects.create(group=g, status=st)
-            self.assertFalse(r.can_edit(auditor))
+        r = ThesisRecord.objects.create(group=g, status=ThesisRecord.STATUS_BORRADOR)
+        self.assertTrue(r.can_edit(auditor))
+
+        r.status = ThesisRecord.STATUS_OBSERVADO
+        self.assertTrue(r.can_edit(auditor))
+
+        r.status = ThesisRecord.STATUS_EN_AUDITORIA
+        self.assertFalse(r.can_edit(auditor))
+
+        r.status = ThesisRecord.STATUS_APROBADO
+        self.assertFalse(r.can_edit(auditor))
+
+        r.status = ThesisRecord.STATUS_POR_PUBLICAR
+        self.assertFalse(r.can_edit(auditor))
+
+        r.status = ThesisRecord.STATUS_PUBLICADO
+        self.assertFalse(r.can_edit(auditor))
 
     def test_dni_digits_only(self):
         form = ThesisRecordForm(

@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="es">
 <head>
@@ -14,7 +15,7 @@
     .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:16px; }
     .btn { border:none; border-radius:8px; padding:8px 12px; cursor:pointer; text-decoration:none; display:inline-block; font-size:14px; }
     .btn[disabled], button.btn:disabled { opacity: .55; cursor: not-allowed; }
-    .btn-primary { background:#2563eb; color:#fff; }
+    .btn-primary { background: var(--brand-600); color:#fff; }
     .btn-secondary { background:#475569; color:#fff; }
     .btn-success { background:#059669; color:#fff; }
     .btn-warning { background:#d97706; color:#fff; }
@@ -69,7 +70,7 @@
     .toast.success::before { background: #16a34a; }
     .toast.error::before { background: #dc2626; }
     .toast.warning::before { background: #d97706; }
-    .toast.info::before { background: #2563eb; }
+    .toast.info::before { background: var(--brand-600); }
 
     .toast-body { font-size: 14px; color: #0f172a; line-height: 1.25rem; padding-left: 6px; }
     .toast-close {
@@ -138,45 +139,460 @@
     /* Auth page layout (login) */
     body.auth-page {
       background:
-        radial-gradient(1200px 600px at 15% 20%, rgba(37, 99, 235, .18), transparent 60%),
+        radial-gradient(1200px 600px at 15% 20%, rgba(var(--brand-rgb), .16), transparent 60%),
         radial-gradient(900px 500px at 85% 30%, rgba(5, 150, 105, .14), transparent 55%),
         radial-gradient(700px 500px at 70% 90%, rgba(15, 23, 42, .10), transparent 60%),
         #f4f6f9;
     }
     body.auth-page .container { max-width:none; margin:0; padding:0; }
+
+    /* App layout: header + sidebar + content */
+    :root {
+      --brand-600: #0f766e;
+      --brand-500: #14b8a6;
+      --brand-rgb: 20, 184, 166;
+      --header-h: 56px;
+      --sidebar-w: 260px;
+      --sidebar-w-collapsed: 72px;
+      --shadow-1: 0 10px 28px rgba(2, 6, 23, .12);
+      --shadow-2: 0 18px 55px rgba(2, 6, 23, .18);
+    }
+
+    .app-shell { min-height: 100vh; }
+    .app-header {
+      height: var(--header-h);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.92));
+      color: #e2e8f0;
+      border-bottom: 1px solid rgba(148,163,184,.20);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      min-width: 0;
+    }
+    .brand img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      padding: 4px;
+    }
+    .brand span {
+      font-weight: 900;
+      letter-spacing: .02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-spacer { flex: 1; }
+    .icon-btn {
+      border: 1px solid rgba(148, 163, 184, .30);
+      background: rgba(2, 6, 23, .15);
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .icon-btn:hover { background: rgba(2, 6, 23, .30); }
+    .icon-btn:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: 2px; }
+    .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, .25);
+      background: rgba(2, 6, 23, .12);
+      color: rgba(226,232,240,.95);
+      font-size: 13px;
+      font-weight: 800;
+      max-width: 340px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .user-pill svg { width: 18px; height: 18px; }
+
+    .app-body {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    .sidebar-backdrop {
+      position: fixed;
+      inset: var(--header-h) 0 0 0;
+      background: rgba(2, 6, 23, .55);
+      z-index: 1100;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: var(--header-h);
+      height: calc(100vh - var(--header-h));
+      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,6,23,.94));
+      color: rgba(226,232,240,.92);
+      border-right: 1px solid rgba(148,163,184,.18);
+      overflow: hidden;
+    }
+
+    .sb-nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; }
+    .sb-sec { border-radius: 14px; border: 1px solid rgba(148,163,184,.14); background: rgba(255,255,255,.03); overflow: hidden; }
+    .sb-sec-btn {
+      width: 100%;
+      position: relative;
+      display: grid;
+      grid-template-columns: 22px 1fr 18px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 10px;
+      border: none;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font-weight: 900;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .sb-sec-btn:hover { background: rgba(255,255,255,.05); }
+    .sb-sec-btn:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: -3px; }
+    .sb-sec-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
+
+    .sb-caret { width: 18px; height: 18px; display: inline-flex; align-items:center; justify-content:center; opacity: .80; }
+    .sb-caret svg { width: 16px; height: 16px; }
+    .sb-sec-btn[aria-expanded="true"] .sb-caret { transform: rotate(180deg); transition: transform .12s ease; }
+
+    .sb-panel { padding: 6px 6px 10px 6px; }
+    .sb-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 10px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: rgba(226,232,240,.92);
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .sb-item:hover { background: rgba(255,255,255,.06); }
+    .sb-item:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: 2px; }
+    .sb-item svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
+
+    .sb-item.is-active {
+      background: linear-gradient(90deg, rgba(var(--brand-rgb), .28), rgba(var(--brand-rgb), .08));
+      border: 1px solid rgba(var(--brand-rgb), .38);
+    }
+
+    .sb-footer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px;
+      border-top: 1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.35);
+      display: grid;
+      gap: 10px;
+    }
+    .sb-user {
+      display: grid;
+      gap: 2px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(148,163,184,.14);
+      background: rgba(255,255,255,.03);
+    }
+    .sb-user .u1 { font-weight: 900; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-user .u2 { font-size: 12px; color: rgba(226,232,240,.72); }
+    .sb-logout {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(148,163,184,.18);
+      color: rgba(226,232,240,.92);
+      font-weight: 900;
+    }
+    .sb-logout:hover { background: rgba(255,255,255,.10); }
+    .sb-logout svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .app-content { min-width: 0; }
+    .app-container { max-width: 1200px; margin: 18px auto; padding: 0 18px; }
+
+    /* Collapse (desktop) */
+    body.sidebar-collapsed .app-body { grid-template-columns: var(--sidebar-w-collapsed) 1fr; }
+    body.sidebar-collapsed .sb-sec-btn { grid-template-columns: 22px 1fr; }
+    body.sidebar-collapsed .sb-sec-btn .sb-caret { display: none; }
+    body.sidebar-collapsed .sb-sec-btn .sb-label,
+    body.sidebar-collapsed .sb-item .sb-label {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    body.sidebar-collapsed .sb-footer .sb-user { display: none; }
+
+    /* Flyout panels when collapsed */
+    body.sidebar-collapsed .sb-panel[hidden] { display: none !important; }
+    body.sidebar-collapsed .sb-panel {
+      position: fixed;
+      left: var(--sidebar-w-collapsed);
+      top: var(--header-h);
+      width: 260px;
+      max-height: calc(100vh - var(--header-h) - 18px);
+      overflow: auto;
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.22);
+      background: rgba(15,23,42,.96);
+      box-shadow: var(--shadow-2);
+      z-index: 1200;
+    }
+
+    @media (max-width: 920px) {
+      .user-pill { display: none; }
+      .desktop-only { display: none !important; }
+      .app-body { grid-template-columns: 1fr; }
+      .sidebar {
+        position: fixed;
+        top: var(--header-h);
+        left: 0;
+        height: calc(100vh - var(--header-h));
+        width: var(--sidebar-w);
+        transform: translateX(-105%);
+        transition: transform .18s ease;
+        z-index: 1200;
+      }
+      body.sidebar-open .sidebar { transform: translateX(0); }
+      body.sidebar-open .sidebar-backdrop { display: block; }
+      body.sidebar-collapsed .sb-panel { position: static; width: auto; box-shadow: none; }
+      .app-container { margin: 16px auto; padding: 0 14px; }
+    }
+
+    @media (min-width: 921px) { .mobile-only { display: none !important; } }
+
+    a:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: 2px; border-radius: 10px; }
   </style>
 </head>
 <body class="{% block body_class %}{% endblock %}">
   {% if request.user.is_authenticated %}
-  <div class="nav">
-    <strong>SAF Platform</strong>
-    <a href="{% url 'dashboard' %}">Dashboard</a>
-    <a href="{% url 'registry:groups_list' %}">Sustentaciones</a>
-    <a href="{% url 'appconfig:advisors_list' %}">Asesores</a>
-    <a href="{% url 'appconfig:jurors_list' %}">Jurados</a>
-    {% if request.user.role == 'auditor' %}
-      <a href="{% url 'appconfig:careers_list' %}">Carreras</a>
-      <a href="{% url 'appconfig:licenses_list' %}">Licencias</a>
-      <a href="{% url 'appconfig:params_list' %}">Parametros</a>
-      <a href="{% url 'accounts:users_list' %}">Usuarios</a>
-    {% endif %}
-    <span class="right">{{ request.user.username }} ({{ request.user.role }})</span>
-    <a href="{% url 'accounts:logout' %}">Salir</a>
-  </div>
-  {% endif %}
+  <div class="app-shell">
+    <header class="app-header">
+      <button class="icon-btn mobile-only" id="btn-sidebar-mobile" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="app-sidebar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <a class="brand" href="{% url 'dashboard' %}">
+        <img src="{% static 'logoUAI.png' %}" alt="UAI">
+        <span>Repositorio Tesis UAI</span>
+      </a>
+
+      <div class="header-spacer"></div>
+
+      <button class="icon-btn desktop-only" id="btn-sidebar-collapse" type="button" aria-label="Colapsar sidebar" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+
+      <div class="user-pill" title="{{ request.user.username }} ({{ request.user.role }})">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4"/></svg>
+        <span>{{ request.user.username }} ({{ request.user.role }})</span>
+      </div>
+
+      <a class="btn btn-secondary btn-sm" href="{% url 'accounts:logout' %}">Salir</a>
+    </header>
+
+    <div class="app-body">
+      <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
+
+      <aside class="sidebar" id="app-sidebar">
+        <nav class="sb-nav" aria-label="Menu principal">
+
+          <!-- Principal -->
+          <div class="sb-sec" data-sec="principal">
+            <button class="sb-sec-btn" type="button" title="Principal" aria-label="Principal" aria-controls="sidebar-sec-principal" {% if request.resolver_match.url_name == 'dashboard' %}aria-expanded="true"{% else %}aria-expanded="false"{% endif %}>
+              <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span>
+              <span class="sb-label">Principal</span>
+              <span class="sb-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="sb-panel" id="sidebar-sec-principal" {% if request.resolver_match.url_name != 'dashboard' %}hidden{% endif %}>
+              <a class="sb-item {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" title="Dashboard" href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13h6v7H4z"/><path d="M14 3h6v17h-6z"/><path d="M4 3h6v7H4z"/></svg></span>
+                <span class="sb-label">Dashboard</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Gestion -->
+          <div class="sb-sec" data-sec="gestion">
+            <button class="sb-sec-btn" type="button" title="Gestion" aria-label="Gestion" aria-controls="sidebar-sec-gestion" {% if request.resolver_match.namespace == 'registry' or request.resolver_match.namespace == 'saf' %}aria-expanded="true"{% else %}aria-expanded="false"{% endif %}>
+              <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg></span>
+              <span class="sb-label">Gestion</span>
+              <span class="sb-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="sb-panel" id="sidebar-sec-gestion" {% if request.resolver_match.namespace != 'registry' and request.resolver_match.namespace != 'saf' %}hidden{% endif %}>
+              <a class="sb-item {% if request.resolver_match.namespace == 'registry' and request.resolver_match.url_name|slice:':7' == 'groups_' %}is-active{% endif %}" title="Sustentaciones" href="{% url 'registry:groups_list' %}" {% if request.resolver_match.namespace == 'registry' and request.resolver_match.url_name|slice:':7' == 'groups_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v4H7z"/><path d="M5 7h14v14H5z"/><path d="M8 11h8"/><path d="M8 15h8"/></svg></span>
+                <span class="sb-label">Sustentaciones</span>
+              </a>
+              {% if request.user.role == 'auditor' %}
+                <a class="sb-item {% if request.resolver_match.namespace == 'saf' %}is-active{% endif %}" title="Publicacion SAF" href="{% url 'saf:batches_list' %}" {% if request.resolver_match.namespace == 'saf' %}aria-current="page"{% endif %}>
+                  <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
+                  <span class="sb-label">Publicacion SAF</span>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Catalogos -->
+          <div class="sb-sec" data-sec="catalogos">
+            <button class="sb-sec-btn" type="button" title="Catalogos" aria-label="Catalogos" aria-controls="sidebar-sec-catalogos"
+              {% if request.resolver_match.namespace == 'appconfig' %}
+                {% if request.resolver_match.url_name|slice:':9' == 'advisors_' or request.resolver_match.url_name|slice:':7' == 'jurors_' %}aria-expanded="true"{% else %}aria-expanded="false"{% endif %}
+              {% else %}
+                aria-expanded="false"
+              {% endif %}>
+              <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+              <span class="sb-label">Catalogos</span>
+              <span class="sb-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="sb-panel" id="sidebar-sec-catalogos"
+              {% if request.resolver_match.namespace == 'appconfig' %}
+                {% if request.resolver_match.url_name|slice:':9' == 'advisors_' or request.resolver_match.url_name|slice:':7' == 'jurors_' %}{% else %}hidden{% endif %}
+              {% else %}
+                hidden
+              {% endif %}>
+              <a class="sb-item {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':9' == 'advisors_' %}is-active{% endif %}" title="Asesores" href="{% url 'appconfig:advisors_list' %}" {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':9' == 'advisors_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4"/><path d="M2 21a10 10 0 0 1 20 0"/></svg></span>
+                <span class="sb-label">Asesores</span>
+              </a>
+              <a class="sb-item {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':7' == 'jurors_' %}is-active{% endif %}" title="Jurados" href="{% url 'appconfig:jurors_list' %}" {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':7' == 'jurors_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/><path d="M5 4h14v16H5z"/></svg></span>
+                <span class="sb-label">Jurados</span>
+              </a>
+            </div>
+          </div>
+
+          {% if request.user.role == 'auditor' %}
+          <!-- Configuracion -->
+          <div class="sb-sec" data-sec="configuracion">
+            <button class="sb-sec-btn" type="button" title="Configuracion" aria-label="Configuracion" aria-controls="sidebar-sec-configuracion"
+              {% if request.resolver_match.namespace == 'appconfig' %}
+                {% if request.resolver_match.url_name|slice:':8' == 'careers_' or request.resolver_match.url_name|slice:':9' == 'licenses_' or request.resolver_match.url_name|slice:':7' == 'params_' %}aria-expanded="true"{% else %}aria-expanded="false"{% endif %}
+              {% else %}
+                aria-expanded="false"
+              {% endif %}>
+              <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 1v4"/><path d="M12 19v4"/><path d="M4.2 4.2l2.8 2.8"/><path d="M17 17l2.8 2.8"/><path d="M1 12h4"/><path d="M19 12h4"/><path d="M4.2 19.8L7 17"/><path d="M17 7l2.8-2.8"/><path d="M12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4"/></svg></span>
+              <span class="sb-label">Configuracion</span>
+              <span class="sb-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="sb-panel" id="sidebar-sec-configuracion"
+              {% if request.resolver_match.namespace == 'appconfig' %}
+                {% if request.resolver_match.url_name|slice:':8' == 'careers_' or request.resolver_match.url_name|slice:':9' == 'licenses_' or request.resolver_match.url_name|slice:':7' == 'params_' %}{% else %}hidden{% endif %}
+              {% else %}
+                hidden
+              {% endif %}>
+              <a class="sb-item {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':8' == 'careers_' %}is-active{% endif %}" title="Carreras" href="{% url 'appconfig:careers_list' %}" {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':8' == 'careers_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
+                <span class="sb-label">Carreras</span>
+              </a>
+              <a class="sb-item {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':9' == 'licenses_' %}is-active{% endif %}" title="Licencias" href="{% url 'appconfig:licenses_list' %}" {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':9' == 'licenses_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4h10v16H7z"/><path d="M9 8h6"/><path d="M9 12h6"/></svg></span>
+                <span class="sb-label">Licencias</span>
+              </a>
+              <a class="sb-item {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':7' == 'params_' %}is-active{% endif %}" title="Parametros" href="{% url 'appconfig:params_list' %}" {% if request.resolver_match.namespace == 'appconfig' and request.resolver_match.url_name|slice:':7' == 'params_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M3 12h18"/><path d="M5 5l14 14"/><path d="M19 5 5 19"/></svg></span>
+                <span class="sb-label">Parametros</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Administracion -->
+          <div class="sb-sec" data-sec="administracion">
+            <button class="sb-sec-btn" type="button" title="Administracion" aria-label="Administracion" aria-controls="sidebar-sec-administracion" {% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name|slice:':6' == 'users_' %}aria-expanded="true"{% else %}aria-expanded="false"{% endif %}>
+              <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+              <span class="sb-label">Administracion</span>
+              <span class="sb-caret" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="sb-panel" id="sidebar-sec-administracion" {% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name|slice:':6' == 'users_' %}{% else %}hidden{% endif %}>
+              <a class="sb-item {% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name|slice:':6' == 'users_' %}is-active{% endif %}" title="Usuarios" href="{% url 'accounts:users_list' %}" {% if request.resolver_match.namespace == 'accounts' and request.resolver_match.url_name|slice:':6' == 'users_' %}aria-current="page"{% endif %}>
+                <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M9 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <span class="sb-label">Usuarios</span>
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+        </nav>
+
+        <div class="sb-footer">
+          <div class="sb-user" aria-label="Usuario actual">
+            <div class="u1">{{ request.user.username }}</div>
+            <div class="u2">Rol: {{ request.user.role }}</div>
+          </div>
+          <a class="sb-logout" title="Salir" href="{% url 'accounts:logout' %}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
+            <span>Salir</span>
+          </a>
+        </div>
+      </aside>
+
+      <main class="app-content" id="app-content" tabindex="-1">
+        <div class="app-container">
+  {% else %}
   <div class="container {% block container_class %}{% endblock %}">
+  {% endif %}
+
     {% if messages %}
       <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true">
         {% for message in messages %}
           <div class="toast {{ message.tags }}" role="alert">
             <div class="toast-body">{{ message }}</div>
-            <button type="button" class="toast-close" aria-label="Cerrar" title="Cerrar">×</button>
+            <button type="button" class="toast-close" aria-label="Cerrar" title="Cerrar">&times;</button>
           </div>
         {% endfor %}
       </div>
     {% endif %}
+
     {% block content %}{% endblock %}
+
+  {% if request.user.is_authenticated %}
+        </div>
+      </main>
+    </div>
   </div>
+  {% else %}
+  </div>
+  {% endif %}
+
   <script>
     (function () {
       function autoHideMs(toast) {
@@ -191,7 +607,7 @@
         window.setTimeout(function () {
           if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
           var region = document.getElementById('toast-region');
-          if (region && region.children.length === 0) region.parentNode.removeChild(region);
+          if (region && region.children.length === 0 && region.parentNode) region.parentNode.removeChild(region);
         }, 220);
       }
 
@@ -214,6 +630,153 @@
       } else {
         initAutoHide();
       }
+    })();
+
+    (function () {
+      var sidebar = document.getElementById('app-sidebar');
+      if (!sidebar) return;
+
+      var backdrop = document.getElementById('sidebar-backdrop');
+      var btnMobile = document.getElementById('btn-sidebar-mobile');
+      var btnCollapse = document.getElementById('btn-sidebar-collapse');
+
+      function isMobile() {
+        return window.matchMedia && window.matchMedia('(max-width: 920px)').matches;
+      }
+
+      function setBackdrop(open) {
+        if (!backdrop) return;
+        backdrop.hidden = !open;
+      }
+
+      function setMobileOpen(open) {
+        document.body.classList.toggle('sidebar-open', !!open);
+        if (btnMobile) btnMobile.setAttribute('aria-expanded', open ? 'true' : 'false');
+        setBackdrop(open);
+
+        if (open) {
+          window.setTimeout(function () {
+            var first = sidebar.querySelector('a.sb-item, a.sb-logout, button.sb-sec-btn');
+            if (first && first.focus) first.focus();
+          }, 0);
+        } else {
+          if (btnMobile && btnMobile.focus) btnMobile.focus();
+        }
+      }
+
+      function setCollapsed(collapsed) {
+        document.body.classList.toggle('sidebar-collapsed', !!collapsed);
+        if (btnCollapse) btnCollapse.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
+        try { localStorage.setItem('uai_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+      }
+
+      function closeAllSections(exceptId) {
+        Array.prototype.forEach.call(sidebar.querySelectorAll('.sb-sec'), function (sec) {
+          var btn = sec.querySelector('.sb-sec-btn');
+          var panel = sec.querySelector('.sb-panel');
+          if (!btn || !panel) return;
+          var secId = sec.getAttribute('data-sec') || '';
+          if (exceptId && secId === exceptId) return;
+          btn.setAttribute('aria-expanded', 'false');
+          panel.hidden = true;
+        });
+      }
+
+      function openSection(secId) {
+        if (!secId) return;
+        var sec = sidebar.querySelector('.sb-sec[data-sec=\"' + secId + '\"]');
+        if (!sec) return;
+        var btn = sec.querySelector('.sb-sec-btn');
+        var panel = sec.querySelector('.sb-panel');
+        if (!btn || !panel) return;
+        closeAllSections(secId);
+        btn.setAttribute('aria-expanded', 'true');
+        panel.hidden = false;
+        try { sessionStorage.setItem('uai_sidebar_open_section', secId); } catch (e) {}
+      }
+
+      function toggleSection(secId) {
+        var sec = sidebar.querySelector('.sb-sec[data-sec=\"' + secId + '\"]');
+        if (!sec) return;
+        var btn = sec.querySelector('.sb-sec-btn');
+        var panel = sec.querySelector('.sb-panel');
+        if (!btn || !panel) return;
+
+        var isOpen = btn.getAttribute('aria-expanded') === 'true' && !panel.hidden;
+        if (isOpen) {
+          btn.setAttribute('aria-expanded', 'false');
+          panel.hidden = true;
+          try { sessionStorage.removeItem('uai_sidebar_open_section'); } catch (e) {}
+          return;
+        }
+        openSection(secId);
+      }
+
+      (function initCollapsed() {
+        var collapsed = false;
+        try { collapsed = localStorage.getItem('uai_sidebar_collapsed') === '1'; } catch (e) {}
+        setCollapsed(collapsed);
+      })();
+
+      (function initOpenSection() {
+        var activeItem = sidebar.querySelector('.sb-item.is-active');
+        if (activeItem) {
+          var s1 = activeItem.closest ? activeItem.closest('.sb-sec') : null;
+          if (s1) {
+            openSection(s1.getAttribute('data-sec'));
+            return;
+          }
+        }
+        var saved = null;
+        try { saved = sessionStorage.getItem('uai_sidebar_open_section'); } catch (e) {}
+        if (saved) {
+          openSection(saved);
+          return;
+        }
+        var already = sidebar.querySelector('.sb-sec-btn[aria-expanded=\"true\"]');
+        var s2 = already && already.closest ? already.closest('.sb-sec') : null;
+        if (s2) openSection(s2.getAttribute('data-sec'));
+      })();
+
+      sidebar.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('.sb-sec-btn') : null;
+        if (btn) {
+          var sec = btn.closest ? btn.closest('.sb-sec') : null;
+          if (!sec) return;
+          ev.preventDefault();
+          toggleSection(sec.getAttribute('data-sec'));
+          return;
+        }
+
+        var link = ev.target && ev.target.closest ? ev.target.closest('a') : null;
+        if (link && isMobile()) setMobileOpen(false);
+      });
+
+      if (btnCollapse) {
+        btnCollapse.addEventListener('click', function () {
+          setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+        });
+      }
+
+      if (btnMobile) {
+        btnMobile.addEventListener('click', function () {
+          setMobileOpen(!document.body.classList.contains('sidebar-open'));
+        });
+      }
+
+      if (backdrop) backdrop.addEventListener('click', function () { setMobileOpen(false); });
+
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Escape') return;
+        if (document.body.classList.contains('sidebar-open')) setMobileOpen(false);
+      });
+
+      document.addEventListener('click', function (ev) {
+        if (!document.body.classList.contains('sidebar-collapsed')) return;
+        if (isMobile()) return;
+        if (ev.target && ev.target.closest && ev.target.closest('#app-sidebar')) return;
+        closeAllSections();
+      });
     })();
   </script>
 </body>

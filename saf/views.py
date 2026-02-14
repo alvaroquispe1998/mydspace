@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 
 from django.contrib import messages
+from django.db import models
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -17,8 +18,35 @@ from saf.services import generate_batch_scripts_only, generate_saf_batch
 
 @role_required(User.ROLE_AUDITOR)
 def batches_list_view(request):
-    messages.info(request, "La publicación SAF se gestiona desde Sustentaciones (grupos).")
-    return redirect("registry:groups_list")
+    batches = SafBatch.objects.select_related("created_by", "group").order_by("-created_at", "-id")[:200]
+
+    publish_groups = (
+        SustentationGroup.objects.annotate(total_records=models.Count("records"))
+        .filter(
+            status__in=[
+                SustentationGroup.STATUS_APROBADO,
+                SustentationGroup.STATUS_POR_PUBLICAR,
+                SustentationGroup.STATUS_PUBLICADO,
+            ]
+        )
+        .order_by("-date", "-id")[:200]
+    )
+    group_ids = [g.id for g in publish_groups]
+    latest_batch_by_group = {}
+    if group_ids:
+        for b in SafBatch.objects.select_related("created_by", "group").filter(group_id__in=group_ids).order_by(
+            "-created_at",
+            "-id",
+        ):
+            if b.group_id and b.group_id not in latest_batch_by_group:
+                latest_batch_by_group[b.group_id] = b
+
+    group_rows = [{"group": g, "batch": latest_batch_by_group.get(g.id)} for g in publish_groups]
+    return render(
+        request,
+        "saf/batches_list.html",
+        {"batches": list(batches), "publish_groups": group_rows},
+    )
 
 
 @role_required(User.ROLE_AUDITOR)

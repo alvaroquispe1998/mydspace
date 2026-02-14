@@ -79,44 +79,10 @@
           <button class="btn btn-success btn-sm" type="submit" {% if not can_submit_now %}disabled title="Debes marcar todos los registros como LISTO para poder enviar."{% else %}onclick="return confirm('¿Enviar el grupo a auditoría?');"{% endif %}>Enviar a auditoría</button>
         </form>
       {% endif %}
-      {% if request.user.role == 'auditor' and group.status == 'APROBADO' %}
-        <form method="post" action="{% url 'saf:groups_generate' group.id %}" style="margin:0;">
-          {% csrf_token %}
-          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Generar SAF para este grupo?');">Generar SAF</button>
-        </form>
-      {% endif %}
-      {% if request.user.role == 'auditor' and pub_batch and pub_batch.zip_path %}
-        <a class="btn btn-primary btn-sm" href="{% url 'saf:groups_download' group.id %}">Descargar ZIP</a>
-      {% endif %}
       <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_list' %}">Volver</a>
     </div>
   </div>
 </div>
-
-{% if request.user.role == 'auditor' %}
-  <div class="card" id="publicacion">
-    <h3 style="margin-top:0;">Publicación (DSpace)</h3>
-    {% if pub_batch and pub_batch.zip_path %}
-      <div class="muted" style="margin-bottom:10px;">
-        1) Descarga el ZIP y copia la carpeta del grupo al servidor DSpace. 2) Ejecuta `importar_todo.bat`.
-        3) Luego ejecuta `export_links_uai.bat` para generar `dspace_links.json`. 4) Sube ese JSON aquí para marcar el grupo como PUBLICADO.
-      </div>
-      <form method="post" action="{% url 'saf:groups_upload_links' group.id %}" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
-        {% csrf_token %}
-        <div style="min-width:280px; flex:1;">
-          <label class="muted" style="display:block; margin-bottom:6px; font-weight:900;">Archivo JSON de enlaces</label>
-          {{ links_form.links_file }}
-          <div class="help">Ejemplo: `dspace_links.json` generado por el script del ZIP.</div>
-        </div>
-        <div>
-          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Aplicar enlaces y marcar como PUBLICADO?');">Aplicar enlaces</button>
-        </div>
-      </form>
-    {% else %}
-      <div class="muted">Cuando el grupo esté APROBADO, genera el SAF para habilitar la descarga del ZIP y la carga del JSON.</div>
-    {% endif %}
-  </div>
-{% endif %}
 
 <div class="card">
   <h3 style="margin-top:0;">Registros</h3>

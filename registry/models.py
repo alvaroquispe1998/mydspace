@@ -206,10 +206,12 @@ class ThesisRecord(models.Model):
         super().save(*args, **kwargs)
 
     def can_edit(self, user) -> bool:
-        # Regla de negocio: el auditor nunca edita registros (solo audita).
-        # Una vez enviado a auditoria o aprobado/incluido en lote, tampoco se edita
+        # Regla de negocio: una vez enviado a auditoria o aprobado/incluido en lote, no se edita
         # para evitar inconsistencias (metadatos/archivos).
-        if not user or getattr(user, "role", None) == "auditor":
+        if not user:
+            return False
+        role = getattr(user, "role", None)
+        if role not in ["cargador", "asesor", "auditor"]:
             return False
         return self.status in [self.STATUS_BORRADOR, self.STATUS_OBSERVADO]
 

@@ -58,7 +58,7 @@ def groups_detail_view(request, group_id: int):
     )
     if career_filter.isdigit():
         records_qs = records_qs.filter(career_id=int(career_filter))
-    can_manage = request.user.role == User.ROLE_CARGADOR
+    can_manage = request.user.role in [User.ROLE_CARGADOR, User.ROLE_ASESOR, User.ROLE_AUDITOR]
     total_records = group.records.count()
     ready_records = group.records.filter(status=ThesisRecord.STATUS_LISTO).count()
     can_submit_visible = (
@@ -69,15 +69,6 @@ def groups_detail_view(request, group_id: int):
     can_submit_now = can_submit_visible and ready_records == total_records
     can_add_records = can_manage and group.status == SustentationGroup.STATUS_ARMADO
 
-    pub_batch = None
-    links_form = None
-    if request.user.role == User.ROLE_AUDITOR:
-        # SAF se gestiona por grupo (el grupo actua como lote de publicacion).
-        from saf.forms import DspaceLinksUploadForm
-        from saf.models import SafBatch
-
-        pub_batch = SafBatch.objects.filter(group=group).order_by("-created_at").first()
-        links_form = DspaceLinksUploadForm()
     return render(
         request,
         "groups/detail.html",
@@ -91,8 +82,6 @@ def groups_detail_view(request, group_id: int):
             "total_records": total_records,
             "ready_records": ready_records,
             "can_add_records": can_add_records,
-            "pub_batch": pub_batch,
-            "links_form": links_form,
         },
     )
 
@@ -101,7 +90,7 @@ def groups_detail_view(request, group_id: int):
 @require_POST
 def groups_submit_view(request, group_id: int):
     group = get_object_or_404(SustentationGroup, pk=group_id)
-    if request.user.role != User.ROLE_CARGADOR:
+    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR, User.ROLE_AUDITOR]:
         messages.error(request, "No tienes permisos para enviar este grupo a auditoría.")
         return redirect("registry:groups_detail", group_id=group.id)
     if group.status not in [SustentationGroup.STATUS_ARMADO, SustentationGroup.STATUS_OBSERVADO]:
@@ -148,7 +137,7 @@ def groups_submit_view(request, group_id: int):
 @require_POST
 def records_mark_ready_view(request, record_id: int):
     record = get_object_or_404(ThesisRecord, pk=record_id)
-    if request.user.role != User.ROLE_CARGADOR:
+    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR, User.ROLE_AUDITOR]:
         messages.error(request, "No tienes permisos para esta acción.")
         return redirect("registry:records_detail", record_id=record.id)
     if record.group.status not in [SustentationGroup.STATUS_ARMADO, SustentationGroup.STATUS_OBSERVADO]:
@@ -175,7 +164,7 @@ def records_mark_ready_view(request, record_id: int):
 @require_POST
 def records_unready_view(request, record_id: int):
     record = get_object_or_404(ThesisRecord, pk=record_id)
-    if request.user.role != User.ROLE_CARGADOR:
+    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR, User.ROLE_AUDITOR]:
         messages.error(request, "No tienes permisos para esta acción.")
         return redirect("registry:records_detail", record_id=record.id)
     if record.group.status not in [SustentationGroup.STATUS_ARMADO, SustentationGroup.STATUS_OBSERVADO]:
@@ -199,6 +188,9 @@ def records_create_view(request):
         messages.error(request, "Debes crear/seleccionar un grupo de sustentación antes de crear registros.")
         return redirect("registry:groups_list")
     group = get_object_or_404(SustentationGroup, pk=int(group_id))
+    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR, User.ROLE_AUDITOR]:
+        messages.error(request, "No tienes permisos para agregar registros a este grupo.")
+        return redirect("registry:groups_detail", group_id=group.id)
     if group.status != SustentationGroup.STATUS_ARMADO:
         messages.error(request, "No puedes agregar registros a un grupo que ya fue enviado a auditoría.")
         return redirect("registry:groups_detail", group_id=group.id)
@@ -241,7 +233,7 @@ def records_edit_view(request, record_id: int):
     # Auditor siempre ve en solo lectura. Cargador puede editar solo en estados permitidos,
     # pero puede ver metadatos en cualquier estado.
     can_edit = record.can_edit(request.user)
-    read_only = (request.user.role == User.ROLE_AUDITOR) or (not can_edit)
+    read_only = not can_edit
     if request.method == "POST" and not can_edit:
         messages.error(request, "No puedes guardar cambios en este registro en su estado actual.")
         return redirect("registry:records_detail", record_id=record.id)
