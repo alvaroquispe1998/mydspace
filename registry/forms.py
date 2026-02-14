@@ -25,29 +25,29 @@ class ThesisRecordForm(forms.ModelForm):
     asesor_ref = forms.ModelChoiceField(
         queryset=AdvisorConfig.objects.none(),
         required=False,
-        label="Asesor (lista)",
-        empty_label="(Opcional)",
+        label="",
+        empty_label="Seleccionar",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     jurado1_ref = forms.ModelChoiceField(
         queryset=JuryMemberConfig.objects.none(),
         required=False,
-        label="Jurado 1 (lista)",
-        empty_label="(Opcional)",
+        label="Jurado 1",
+        empty_label="Seleccionar",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     jurado2_ref = forms.ModelChoiceField(
         queryset=JuryMemberConfig.objects.none(),
         required=False,
-        label="Jurado 2 (lista)",
-        empty_label="(Opcional)",
+        label="Jurado 2",
+        empty_label="Seleccionar",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     jurado3_ref = forms.ModelChoiceField(
         queryset=JuryMemberConfig.objects.none(),
         required=False,
-        label="Jurado 3 (lista)",
-        empty_label="(Opcional)",
+        label="Jurado 3",
+        empty_label="Seleccionar",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 
@@ -87,19 +87,23 @@ class ThesisRecordForm(forms.ModelForm):
         self.fields["autor2_dni"].widget.attrs.update(dni_attrs)
 
         self.fields["asesor_nombre"].label = "Asesor: Apellidos, Nombres"
-        self.fields["asesor_nombre"].help_text = "Formato: Apellidos, Nombres"
+        self.fields["asesor_nombre"].help_text = ""
         self.fields["asesor_nombre"].widget.attrs["placeholder"] = "RAMIREZ QUISPE, ANA MARIA"
         self.fields["asesor_dni"].label = "Asesor: DNI"
         self.fields["asesor_dni"].widget.attrs.update(dni_attrs)
         self.fields["asesor_orcid"].label = "Asesor: ORCID"
         self.fields["asesor_orcid"].widget.attrs["placeholder"] = "https://orcid.org/0000-0000-0000-0000"
+        # Bloquear edicion manual: se completa desde el combo.
+        for f in ["asesor_nombre", "asesor_dni", "asesor_orcid"]:
+            self.fields[f].widget.attrs["readonly"] = "readonly"
 
-        self.fields["jurado1"].label = "Jurado 1: Apellidos, Nombres"
-        self.fields["jurado1"].help_text = "Formato: Apellidos, Nombres"
-        self.fields["jurado2"].label = "Jurado 2: Apellidos, Nombres"
-        self.fields["jurado2"].help_text = "Opcional. Formato: Apellidos, Nombres"
-        self.fields["jurado3"].label = "Jurado 3: Apellidos, Nombres"
-        self.fields["jurado3"].help_text = "Opcional. Formato: Apellidos, Nombres"
+        # Jurados: se seleccionan desde combos (no se editan manualmente en la UI).
+        self.fields["jurado1"].label = "Jurado 1"
+        self.fields["jurado1"].help_text = ""
+        self.fields["jurado2"].label = "Jurado 2"
+        self.fields["jurado2"].help_text = ""
+        self.fields["jurado3"].label = "Jurado 3"
+        self.fields["jurado3"].help_text = ""
 
         self.fields["resumen"].label = "Resumen"
         self.fields["keywords_raw"].label = "Palabras clave"
@@ -110,7 +114,7 @@ class ThesisRecordForm(forms.ModelForm):
         if self.instance and self.instance.pk and self.instance.asesor_ref_id:
             aqs = AdvisorConfig.objects.filter(Q(active=True) | Q(pk=self.instance.asesor_ref_id)).order_by("nombre")
         self.fields["asesor_ref"].queryset = aqs
-        self.fields["asesor_ref"].help_text = "Opcional. Si seleccionas uno, se copiará a los campos del asesor."
+        self.fields["asesor_ref"].help_text = "Selecciona un asesor para completar automáticamente los campos."
 
         j_active = JuryMemberConfig.objects.filter(active=True).order_by("nombre")
         for jf in ["jurado1_ref", "jurado2_ref", "jurado3_ref"]:
@@ -119,7 +123,7 @@ class ThesisRecordForm(forms.ModelForm):
             if inst_id:
                 qs = JuryMemberConfig.objects.filter(Q(active=True) | Q(pk=inst_id)).order_by("nombre")
             self.fields[jf].queryset = qs
-            self.fields[jf].help_text = "Opcional. Si seleccionas uno, se copiará al campo del jurado."
+            self.fields[jf].help_text = "Selecciona desde la lista."
 
     @staticmethod
     def _validate_person_name(value: str, label: str):
@@ -149,6 +153,15 @@ class ThesisRecordForm(forms.ModelForm):
             if jref:
                 cleaned[f"jurado{idx}"] = (jref.nombre or "").strip()
 
+        # Validacion: jurados no repetidos.
+        refs = [cleaned.get("jurado1_ref"), cleaned.get("jurado2_ref"), cleaned.get("jurado3_ref")]
+        refs = [r for r in refs if r]
+        ids = [r.id for r in refs]
+        if len(ids) != len(set(ids)):
+            self.add_error("jurado1_ref", "No puedes repetir el mismo jurado.")
+            self.add_error("jurado2_ref", "No puedes repetir el mismo jurado.")
+            self.add_error("jurado3_ref", "No puedes repetir el mismo jurado.")
+
         for f in ["autor1_dni", "autor2_dni", "asesor_dni"]:
             val = (cleaned.get(f) or "").strip()
             if not val:
@@ -160,8 +173,8 @@ class ThesisRecordForm(forms.ModelForm):
         if asesor_orcid and not ORCID_RE.match(asesor_orcid):
             self.add_error("asesor_orcid", "Formato invalido. Ej: https://orcid.org/0000-0000-0000-0000")
 
-        # Formato "Apellidos, Nombres"
-        for f in ["autor1_nombre", "autor2_nombre", "asesor_nombre", "jurado1", "jurado2", "jurado3"]:
+        # Formato "Apellidos, Nombres" (jurados vienen del combo, no validar formato aqui)
+        for f in ["autor1_nombre", "autor2_nombre", "asesor_nombre"]:
             try:
                 self._validate_person_name(cleaned.get(f, ""), self.fields[f].label)
             except forms.ValidationError as exc:
@@ -223,9 +236,9 @@ class ThesisRecordForm(forms.ModelForm):
             "asesor_nombre": forms.TextInput(attrs={"class": "form-control"}),
             "asesor_dni": forms.TextInput(attrs={"class": "form-control"}),
             "asesor_orcid": forms.TextInput(attrs={"class": "form-control"}),
-            "jurado1": forms.TextInput(attrs={"class": "form-control"}),
-            "jurado2": forms.TextInput(attrs={"class": "form-control"}),
-            "jurado3": forms.TextInput(attrs={"class": "form-control"}),
+            "jurado1": forms.HiddenInput(),
+            "jurado2": forms.HiddenInput(),
+            "jurado3": forms.HiddenInput(),
             "resumen": forms.Textarea(attrs={"class": "form-control", "rows": 6}),
             "keywords_raw": forms.Textarea(
                 attrs={"class": "form-control", "rows": 3, "placeholder": "Separar por ; o , o |"}

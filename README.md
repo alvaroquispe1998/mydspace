@@ -1,22 +1,22 @@
 # Plataforma Web SAF (Django + MySQL)
 
-Aplicacion web para registrar tesis, auditar registros y generar lotes SAF para importacion en DSpace.
+Aplicacion web para registrar tesis, auditar registros y generar paquetes SAF por **grupo de sustentacion** para importacion en DSpace.
 
 ## Modulos implementados
 - `accounts`: login, roles (`cargador`, `auditor`) y gestion de usuarios.
 - `registry`: registro de tesis, archivos y flujo de auditoria.
 - `appconfig`: configuracion de carreras, asesores, jurados, licencias versionadas y parametros.
-- `saf`: lotes y generacion de paquetes SAF con ZIP de salida.
+- `saf`: generacion de paquetes SAF (ZIP) por grupo.
 
 ## Flujo funcional
 1. Cargador crea un **grupo de sustentación** (1 por día) y dentro crea los registros.
 2. Cargador sube archivos por registro (tesis, formulario(s), turnitin).
 3. Cargador **envía el grupo** a auditoría (valida que todos estén listos).
 4. Auditor revisa **por registro**: observa o aprueba.
-5. Cuando **todos los registros del grupo están APROBADO**, el auditor crea el **lote SAF del grupo** y genera el ZIP.
+5. Cuando **todos los registros del grupo están APROBADO**, el auditor **genera el SAF del grupo** y descarga el ZIP.
 6. Al generar SAF, los registros pasan a **POR PUBLICAR**.
 7. En el servidor DSpace se importa el ZIP y luego se genera `dspace_links.json` desde los `mapfiles`.
-8. En la web, el auditor sube `dspace_links.json` en el lote para marcar como **PUBLICADO** y habilitar "Ver publicación".
+8. En la web, el auditor sube `dspace_links.json` en el **grupo** para marcar como **PUBLICADO** y habilitar "Ver publicación".
 
 ## Requisitos
 - Python 3.12+
@@ -239,7 +239,7 @@ Se puede, pero **no es recomendable commitear** `db.sqlite3` al repo (puede cont
   - conversion DOCX->PDF con LibreOffice cuando aplique.
 
 ## Salida SAF
-Por lote se genera en:
+Por grupo se genera en:
 - `generated_saf/<BATCH_CODE>/`
 - `generated_saf/<BATCH_CODE>.zip`
 

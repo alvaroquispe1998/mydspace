@@ -13,6 +13,7 @@
     .container { max-width:1200px; margin:20px auto; padding:0 16px; }
     .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin-bottom:16px; }
     .btn { border:none; border-radius:8px; padding:8px 12px; cursor:pointer; text-decoration:none; display:inline-block; font-size:14px; }
+    .btn[disabled], button.btn:disabled { opacity: .55; cursor: not-allowed; }
     .btn-primary { background:#2563eb; color:#fff; }
     .btn-secondary { background:#475569; color:#fff; }
     .btn-success { background:#059669; color:#fff; }
@@ -25,11 +26,72 @@
     .form-row { margin-bottom:14px; min-width: 0; }
     .form-control, .form-select { width:100%; max-width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; }
     .help { color:#64748b; font-size:12px; }
-    .msg { padding:10px; border-radius:8px; margin-bottom:8px; }
-    .msg.success { background:#dcfce7; }
-    .msg.error { background:#fee2e2; }
-    .msg.warning { background:#fef3c7; }
     .badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; background:#e2e8f0; }
+
+    /* Toast notifications (Django messages) */
+    .toast-region {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 9999;
+      width: min(420px, calc(100vw - 28px));
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 12px 12px 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(226, 232, 240, .9);
+      background: rgba(255, 255, 255, .92);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, .12);
+      transform: translateY(-6px);
+      opacity: 0;
+      animation: toast-in .18s ease-out forwards;
+      position: relative;
+      overflow: hidden;
+    }
+    .toast::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 6px;
+      background: #64748b;
+      opacity: .9;
+    }
+    .toast.success::before { background: #16a34a; }
+    .toast.error::before { background: #dc2626; }
+    .toast.warning::before { background: #d97706; }
+    .toast.info::before { background: #2563eb; }
+
+    .toast-body { font-size: 14px; color: #0f172a; line-height: 1.25rem; padding-left: 6px; }
+    .toast-close {
+      border: none;
+      background: transparent;
+      color: #334155;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 16px;
+      line-height: 16px;
+      font-weight: 900;
+    }
+    .toast-close:hover { background: rgba(226, 232, 240, .7); }
+    .toast.hide { animation: toast-out .18s ease-in forwards; }
+
+    @keyframes toast-in {
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes toast-out {
+      to { transform: translateY(-6px); opacity: 0; }
+    }
 
     /* Status + action chips (used across pages) */
     .status-badge {
@@ -52,6 +114,7 @@
     .status-badge[data-status="APROBADO"] { background:#dcfce7; border-color:#bbf7d0; color:#065f46; }
     .status-badge[data-status="POR_PUBLICAR"] { background:#eef2ff; border-color:#c7d2fe; color:#3730a3; }
     .status-badge[data-status="PUBLICADO"] { background:#ecfeff; border-color:#a5f3fc; color:#155e75; }
+    .status-badge[data-status="LISTO"] { background:#ede9fe; border-color:#ddd6fe; color:#5b21b6; }
 
     .action-badge {
       display: inline-flex;
@@ -89,12 +152,10 @@
     <strong>SAF Platform</strong>
     <a href="{% url 'dashboard' %}">Dashboard</a>
     <a href="{% url 'registry:groups_list' %}">Sustentaciones</a>
-    <a href="{% url 'registry:records_list' %}">Registros</a>
+    <a href="{% url 'appconfig:advisors_list' %}">Asesores</a>
+    <a href="{% url 'appconfig:jurors_list' %}">Jurados</a>
     {% if request.user.role == 'auditor' %}
-      <a href="{% url 'saf:batches_list' %}">Lotes SAF</a>
       <a href="{% url 'appconfig:careers_list' %}">Carreras</a>
-      <a href="{% url 'appconfig:advisors_list' %}">Asesores</a>
-      <a href="{% url 'appconfig:jurors_list' %}">Jurados</a>
       <a href="{% url 'appconfig:licenses_list' %}">Licencias</a>
       <a href="{% url 'appconfig:params_list' %}">Parametros</a>
       <a href="{% url 'accounts:users_list' %}">Usuarios</a>
@@ -105,11 +166,55 @@
   {% endif %}
   <div class="container {% block container_class %}{% endblock %}">
     {% if messages %}
-      {% for message in messages %}
-        <div class="msg {{ message.tags }}">{{ message }}</div>
-      {% endfor %}
+      <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true">
+        {% for message in messages %}
+          <div class="toast {{ message.tags }}" role="alert">
+            <div class="toast-body">{{ message }}</div>
+            <button type="button" class="toast-close" aria-label="Cerrar" title="Cerrar">×</button>
+          </div>
+        {% endfor %}
+      </div>
     {% endif %}
     {% block content %}{% endblock %}
   </div>
+  <script>
+    (function () {
+      function autoHideMs(toast) {
+        if (toast.classList.contains('error')) return 10000;
+        if (toast.classList.contains('warning')) return 8000;
+        return 5500;
+      }
+
+      function hideToast(toast) {
+        if (!toast || toast.classList.contains('hide')) return;
+        toast.classList.add('hide');
+        window.setTimeout(function () {
+          if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+          var region = document.getElementById('toast-region');
+          if (region && region.children.length === 0) region.parentNode.removeChild(region);
+        }, 220);
+      }
+
+      document.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('.toast-close') : null;
+        if (!btn) return;
+        var toast = btn.closest('.toast');
+        hideToast(toast);
+      });
+
+      function initAutoHide() {
+        var region = document.getElementById('toast-region');
+        if (!region) return;
+        Array.prototype.forEach.call(region.querySelectorAll('.toast'), function (t) {
+          window.setTimeout(function () { hideToast(t); }, autoHideMs(t));
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAutoHide);
+      } else {
+        initAutoHide();
+      }
+    })();
+  </script>
 </body>
 </html>

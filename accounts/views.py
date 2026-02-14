@@ -4,6 +4,7 @@ from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.db import models
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
@@ -35,30 +36,36 @@ def logout_view(request):
 
 @login_required
 def dashboard_view(request):
-    from registry.models import ThesisRecord
+    from registry.models import SustentationGroup, ThesisRecord
 
-    status_counts = {s["status"]: s["count"] for s in ThesisRecord.objects.values("status").annotate(count=models.Count("id"))}
-    status_label_map = {code: label for code, label in ThesisRecord.STATUS_CHOICES}
+    status_counts = {
+        s["status"]: s["count"]
+        for s in SustentationGroup.objects.values("status").annotate(count=models.Count("id"))
+    }
+    status_label_map = {code: label for code, label in SustentationGroup.STATUS_CHOICES}
     status_rows = [
         {"status": code, "label": status_label_map.get(code, code), "count": int(status_counts.get(code, 0))}
-        for code, _label in ThesisRecord.STATUS_CHOICES
+        for code, _label in SustentationGroup.STATUS_CHOICES
     ]
 
-    recent_records = (
-        ThesisRecord.objects.select_related("career")
-        .order_by("-updated_at", "-id")[:10]
+    recent_groups = (
+        SustentationGroup.objects.annotate(records_count=models.Count("records"))
+        .order_by("-date", "-id")[:10]
     )
-    pending_records = (
-        ThesisRecord.objects.select_related("career")
-        .filter(status=ThesisRecord.STATUS_EN_AUDITORIA)
-        .order_by("nro")[:10]
+    pending_groups = (
+        SustentationGroup.objects.annotate(
+            records_count=models.Count("records"),
+            pending_records=models.Count("records", filter=Q(records__status=ThesisRecord.STATUS_EN_AUDITORIA)),
+        )
+        .filter(status=SustentationGroup.STATUS_EN_AUDITORIA)
+        .order_by("-date", "-id")[:10]
     )
     context = {
         "status_rows": status_rows,
-        "total_records": ThesisRecord.objects.count(),
-        "pending_audit": ThesisRecord.objects.filter(status=ThesisRecord.STATUS_EN_AUDITORIA).count(),
-        "recent_records": recent_records,
-        "pending_records": pending_records,
+        "total_groups": SustentationGroup.objects.count(),
+        "pending_audit_groups": SustentationGroup.objects.filter(status=SustentationGroup.STATUS_EN_AUDITORIA).count(),
+        "recent_groups": recent_groups,
+        "pending_groups": pending_groups,
     }
     return render(request, "dashboard.html", context)
 

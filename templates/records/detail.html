@@ -152,6 +152,19 @@
     </div>
     <div class="header-actions">
       <a class="btn btn-secondary" href="{% url 'registry:records_edit' record.id %}">{% if can_edit %}Editar metadatos{% else %}Ver metadatos{% endif %}</a>
+      {% if request.user.role == 'cargador' %}
+        {% if record.status == 'LISTO' %}
+          <form method="post" action="{% url 'registry:records_unready' record.id %}" style="margin:0;">
+            {% csrf_token %}
+            <button class="btn btn-secondary" type="submit" onclick="return confirm('¿Volver a editar este registro?');">Volver a editar</button>
+          </form>
+        {% elif can_edit %}
+          <form method="post" action="{% url 'registry:records_mark_ready' record.id %}" style="margin:0;">
+            {% csrf_token %}
+            <button class="btn btn-success" type="submit">Marcar listo</button>
+          </form>
+        {% endif %}
+      {% endif %}
       {% if record.status == 'PUBLICADO' and record.dspace_url %}
         <a class="btn btn-primary" href="{{ record.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
       {% endif %}

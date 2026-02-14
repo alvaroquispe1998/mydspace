@@ -5,8 +5,11 @@
   .hero { display:flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
   .title { margin:0; font-size: 22px; font-weight: 900; color:#0f172a; letter-spacing: -0.02em; }
   .sub { margin-top: 6px; display:flex; gap: 10px; align-items:center; flex-wrap: wrap; color:#64748b; font-size: 13px; }
-  .btn-sm { padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 800; }
+
+  .btn { white-space: nowrap; }
+  .btn-sm { padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 900; }
   .actions { display:flex; gap: 8px; flex-wrap: wrap; align-items:center; justify-content:flex-end; }
+
   .table-shell { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
   .table-wrap { overflow: auto; }
   .nice-table { border-collapse: separate; border-spacing: 0; }
@@ -20,10 +23,38 @@
     white-space: nowrap;
   }
   .nice-table tbody tr:hover { background: #f8fafc; }
+
   .title-cut { display:block; max-width: 620px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .muted { color:#64748b; font-size: 13px; }
+
+  .filter-bar { display:flex; gap:10px; align-items:end; justify-content: space-between; flex-wrap:wrap; margin-bottom:10px; }
+  .filter-left { display:flex; gap:10px; align-items:end; flex-wrap:wrap; }
+  .filter-left .form-select { max-width: 320px; }
+  .filter-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+  .row-actions {
+    display:flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .row-actions .btn { min-height: 36px; min-width: 130px; text-align: center; }
+  .row-actions .btn-secondary { background:#334155; }
+  .row-actions .btn-success { background:#059669; }
+
+  @media (max-width: 720px) {
+    .row-actions .btn { min-width: auto; }
+  }
   @media (max-width: 560px) {
     .actions .btn { width: 100%; text-align: center; }
+    .filter-left { width: 100%; }
+    .filter-left > div { width: 100%; min-width: 0 !important; }
+    .filter-left .form-select { max-width: 100%; }
+    .filter-actions { width: 100%; }
+    .filter-actions .btn { width: 100%; text-align: center; }
+    .row-actions { flex-direction: column; align-items: stretch; }
+    .row-actions .btn { width: 100%; }
   }
 </style>
 
@@ -33,7 +64,8 @@
       <h2 class="title">{{ group.name }}</h2>
       <div class="sub">
         <span class="status-badge" data-status="{{ group.status }}">{{ group.get_status_display|upper }}</span>
-        <span class="muted">{{ records|length }} registro(s)</span>
+        <span class="muted">{{ total_records }} registro(s)</span>
+        <span class="muted">| Listos: <strong>{{ ready_records }}</strong>/{{ total_records }}</span>
       </div>
       <div class="muted" style="margin-top:10px;">Fecha: <strong>{{ group.date }}</strong></div>
     </div>
@@ -41,40 +73,72 @@
       {% if can_add_records %}
         <a class="btn btn-primary btn-sm" href="{% url 'registry:records_create' %}?group={{ group.id }}">Nuevo registro</a>
       {% endif %}
-      {% if can_submit %}
+      {% if can_submit_visible %}
         <form method="post" action="{% url 'registry:groups_submit' group.id %}" style="margin:0;">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Enviar el grupo a auditoría?');">Enviar a auditoría</button>
+          <button class="btn btn-success btn-sm" type="submit" {% if not can_submit_now %}disabled title="Debes marcar todos los registros como LISTO para poder enviar."{% else %}onclick="return confirm('¿Enviar el grupo a auditoría?');"{% endif %}>Enviar a auditoría</button>
         </form>
       {% endif %}
       {% if request.user.role == 'auditor' and group.status == 'APROBADO' %}
-        <form method="post" action="{% url 'saf:batches_create_from_group' group.id %}" style="margin:0;">
+        <form method="post" action="{% url 'saf:groups_generate' group.id %}" style="margin:0;">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Crear lote SAF para este grupo?');">Crear lote SAF</button>
+          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Generar SAF para este grupo?');">Generar SAF</button>
         </form>
+      {% endif %}
+      {% if request.user.role == 'auditor' and pub_batch and pub_batch.zip_path %}
+        <a class="btn btn-primary btn-sm" href="{% url 'saf:groups_download' group.id %}">Descargar ZIP</a>
       {% endif %}
       <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_list' %}">Volver</a>
     </div>
   </div>
 </div>
 
+{% if request.user.role == 'auditor' %}
+  <div class="card" id="publicacion">
+    <h3 style="margin-top:0;">Publicación (DSpace)</h3>
+    {% if pub_batch and pub_batch.zip_path %}
+      <div class="muted" style="margin-bottom:10px;">
+        1) Descarga el ZIP y copia la carpeta del grupo al servidor DSpace. 2) Ejecuta `importar_todo.bat`.
+        3) Luego ejecuta `export_links_uai.bat` para generar `dspace_links.json`. 4) Sube ese JSON aquí para marcar el grupo como PUBLICADO.
+      </div>
+      <form method="post" action="{% url 'saf:groups_upload_links' group.id %}" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+        {% csrf_token %}
+        <div style="min-width:280px; flex:1;">
+          <label class="muted" style="display:block; margin-bottom:6px; font-weight:900;">Archivo JSON de enlaces</label>
+          {{ links_form.links_file }}
+          <div class="help">Ejemplo: `dspace_links.json` generado por el script del ZIP.</div>
+        </div>
+        <div>
+          <button class="btn btn-success btn-sm" type="submit" onclick="return confirm('¿Aplicar enlaces y marcar como PUBLICADO?');">Aplicar enlaces</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="muted">Cuando el grupo esté APROBADO, genera el SAF para habilitar la descarga del ZIP y la carga del JSON.</div>
+    {% endif %}
+  </div>
+{% endif %}
+
 <div class="card">
   <h3 style="margin-top:0;">Registros</h3>
-  <form method="get" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:10px;">
-    <div style="min-width:240px;">
-      <label for="id_career" class="muted" style="display:block; margin-bottom:6px; font-weight:800;">Carrera</label>
-      <select id="id_career" class="form-select" name="career">
-        <option value="">Todas</option>
-        {% for c in careers %}
-          <option value="{{ c.id }}" {% if career_filter == c.id|stringformat:"s" %}selected{% endif %}>{{ c.carrera_excel }}</option>
-        {% endfor %}
-      </select>
+
+  <form method="get" class="filter-bar">
+    <div class="filter-left">
+      <div style="min-width:240px;">
+        <label for="id_career" class="muted" style="display:block; margin-bottom:6px; font-weight:900;">Carrera</label>
+        <select id="id_career" class="form-select" name="career">
+          <option value="">Todas</option>
+          {% for c in careers %}
+            <option value="{{ c.id }}" {% if career_filter == c.id|stringformat:"s" %}selected{% endif %}>{{ c.carrera_excel }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+    <div class="filter-actions">
+      <button class="btn btn-primary btn-sm" type="submit">Filtrar</button>
       <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_detail' group.id %}">Limpiar</a>
     </div>
   </form>
+
   <div class="table-shell">
     <div class="table-wrap">
       <table class="nice-table">
@@ -84,7 +148,7 @@
             <th>Título</th>
             <th style="width:240px;">Carrera</th>
             <th style="width:160px;">Estado</th>
-            <th style="width:260px;"></th>
+            <th style="width:320px;">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -97,11 +161,13 @@
               </td>
               <td>{{ r.career.carrera_excel|default:"-" }}</td>
               <td><span class="status-badge" data-status="{{ r.status }}">{{ r.get_status_display|upper }}</span></td>
-              <td style="text-align:right;">
-                <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_detail' r.id %}">Abrir</a>
-                {% if r.dspace_url %}
-                  <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
-                {% endif %}
+              <td>
+                <div class="row-actions">
+                  <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_detail' r.id %}">Abrir</a>
+                  {% if r.dspace_url %}
+                    <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+                  {% endif %}
+                </div>
               </td>
             </tr>
           {% empty %}

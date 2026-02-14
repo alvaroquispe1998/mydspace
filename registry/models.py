@@ -85,6 +85,7 @@ class SustentationGroup(models.Model):
 
 class ThesisRecord(models.Model):
     STATUS_BORRADOR = "BORRADOR"
+    STATUS_LISTO = "LISTO"
     STATUS_EN_AUDITORIA = "EN_AUDITORIA"
     STATUS_OBSERVADO = "OBSERVADO"
     STATUS_APROBADO = "APROBADO"
@@ -92,6 +93,7 @@ class ThesisRecord(models.Model):
     STATUS_PUBLICADO = "PUBLICADO"
     STATUS_CHOICES = [
         (STATUS_BORRADOR, "Borrador"),
+        (STATUS_LISTO, "Listo"),
         (STATUS_EN_AUDITORIA, "En auditoría"),
         (STATUS_OBSERVADO, "Observado"),
         (STATUS_APROBADO, "Aprobado"),

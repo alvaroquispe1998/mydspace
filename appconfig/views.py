@@ -125,13 +125,13 @@ def params_edit_view(request, param_id: int):
         form = SystemConfigForm(instance=target)
     return render(request, "config/param_form.html", {"form": form, "title": "Editar parámetro"})
 
-@role_required(User.ROLE_AUDITOR)
+@role_required(User.ROLE_AUDITOR, User.ROLE_CARGADOR)
 def advisors_list_view(request):
     advisors = AdvisorConfig.objects.order_by("nombre")
     return render(request, "config/advisors_list.html", {"advisors": advisors})
 
 
-@role_required(User.ROLE_AUDITOR)
+@role_required(User.ROLE_AUDITOR, User.ROLE_CARGADOR)
 def advisors_create_view(request):
     if request.method == "POST":
         form = AdvisorConfigForm(request.POST)
@@ -144,7 +144,7 @@ def advisors_create_view(request):
     return render(request, "config/advisor_form.html", {"form": form, "title": "Nuevo asesor"})
 
 
-@role_required(User.ROLE_AUDITOR)
+@role_required(User.ROLE_AUDITOR, User.ROLE_CARGADOR)
 def advisors_edit_view(request, advisor_id: int):
     advisor = get_object_or_404(AdvisorConfig, pk=advisor_id)
     if request.method == "POST":
@@ -158,13 +158,13 @@ def advisors_edit_view(request, advisor_id: int):
     return render(request, "config/advisor_form.html", {"form": form, "title": "Editar asesor", "advisor": advisor})
 
 
-@role_required(User.ROLE_AUDITOR)
+@role_required(User.ROLE_AUDITOR, User.ROLE_CARGADOR)
 def jurors_list_view(request):
     jurors = JuryMemberConfig.objects.order_by("nombre")
     return render(request, "config/jurors_list.html", {"jurors": jurors})
 
 
-@role_required(User.ROLE_AUDITOR)
+@role_required(User.ROLE_AUDITOR, User.ROLE_CARGADOR)
 def jurors_create_view(request):
     if request.method == "POST":
         form = JuryMemberConfigForm(request.POST)
@@ -177,7 +177,7 @@ def jurors_create_view(request):
     return render(request, "config/juror_form.html", {"form": form, "title": "Nuevo jurado"})
 
 
-@role_required(User.ROLE_AUDITOR)
+@role_required(User.ROLE_AUDITOR, User.ROLE_CARGADOR)
 def jurors_edit_view(request, juror_id: int):
     juror = get_object_or_404(JuryMemberConfig, pk=juror_id)
     if request.method == "POST":

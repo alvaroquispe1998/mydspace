@@ -8,11 +8,19 @@ from saf.views import (
     batches_list_view,
     batches_scripts_view,
     batches_upload_links_view,
+    groups_download_view,
+    groups_generate_view,
+    groups_upload_links_view,
 )
 
 app_name = "saf"
 
 urlpatterns = [
+    # SAF is managed by SustentationGroup (group acts as publication batch).
+    path("groups/<int:group_id>/generate/", groups_generate_view, name="groups_generate"),
+    path("groups/<int:group_id>/download/", groups_download_view, name="groups_download"),
+    path("groups/<int:group_id>/links/", groups_upload_links_view, name="groups_upload_links"),
+
     path("batches/", batches_list_view, name="batches_list"),
     path("groups/<int:group_id>/batches/new/", batches_create_from_group_view, name="batches_create_from_group"),
     path("batches/<int:batch_id>/", batches_detail_view, name="batches_detail"),

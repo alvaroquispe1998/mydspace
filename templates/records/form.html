@@ -86,7 +86,6 @@
     <div class="section-box">
       <h3 class="section-title">Asesor</h3>
       <div class="form-row">
-        {{ form.asesor_ref.label_tag }}
         {{ form.asesor_ref }}
         {% if form.asesor_ref.help_text %}<div class="field-help">{{ form.asesor_ref.help_text }}</div>{% endif %}
         {% if form.asesor_ref.errors %}<div class="field-err">{{ form.asesor_ref.errors|join:', ' }}</div>{% endif %}
@@ -113,21 +112,14 @@
 
     <div class="section-box">
       <h3 class="section-title">Jurado</h3>
-      <p class="section-sub">Formato <strong>Apellidos, Nombres</strong>.</p>
+      <p class="section-sub">Selecciona los jurados desde la lista.</p>
 
-      <div class="form-grid-2">
-        <div class="form-row">
-          {{ form.jurado1_ref.label_tag }}
-          {{ form.jurado1_ref }}
-          {% if form.jurado1_ref.help_text %}<div class="field-help">{{ form.jurado1_ref.help_text }}</div>{% endif %}
-          {% if form.jurado1_ref.errors %}<div class="field-err">{{ form.jurado1_ref.errors|join:', ' }}</div>{% endif %}
-        </div>
-        <div class="form-row">
-          {{ form.jurado1.label_tag }}
-          {{ form.jurado1 }}
-          {% if form.jurado1.help_text %}<div class="field-help">{{ form.jurado1.help_text }}</div>{% endif %}
-          {% if form.jurado1.errors %}<div class="field-err">{{ form.jurado1.errors|join:', ' }}</div>{% endif %}
-        </div>
+      <div class="form-row">
+        {{ form.jurado1_ref.label_tag }}
+        {{ form.jurado1_ref }}
+        {% if form.jurado1_ref.help_text %}<div class="field-help">{{ form.jurado1_ref.help_text }}</div>{% endif %}
+        {% if form.jurado1_ref.errors %}<div class="field-err">{{ form.jurado1_ref.errors|join:', ' }}</div>{% endif %}
+        {{ form.jurado1 }}
       </div>
 
       {% if not read_only %}
@@ -136,19 +128,12 @@
         </div>
       {% endif %}
 
-      <div id="jurado2-block" class="form-grid-2 {% if not read_only %}hidden-block{% endif %}">
-        <div class="form-row">
-          {{ form.jurado2_ref.label_tag }}
-          {{ form.jurado2_ref }}
-          {% if form.jurado2_ref.help_text %}<div class="field-help">{{ form.jurado2_ref.help_text }}</div>{% endif %}
-          {% if form.jurado2_ref.errors %}<div class="field-err">{{ form.jurado2_ref.errors|join:', ' }}</div>{% endif %}
-        </div>
-        <div class="form-row">
-          {{ form.jurado2.label_tag }}
-          {{ form.jurado2 }}
-          {% if form.jurado2.help_text %}<div class="field-help">{{ form.jurado2.help_text }}</div>{% endif %}
-          {% if form.jurado2.errors %}<div class="field-err">{{ form.jurado2.errors|join:', ' }}</div>{% endif %}
-        </div>
+      <div id="jurado2-block" class="form-row {% if not read_only %}hidden-block{% endif %}">
+        {{ form.jurado2_ref.label_tag }}
+        {{ form.jurado2_ref }}
+        {% if form.jurado2_ref.help_text %}<div class="field-help">{{ form.jurado2_ref.help_text }}</div>{% endif %}
+        {% if form.jurado2_ref.errors %}<div class="field-err">{{ form.jurado2_ref.errors|join:', ' }}</div>{% endif %}
+        {{ form.jurado2 }}
       </div>
 
       {% if not read_only %}
@@ -157,19 +142,12 @@
         </div>
       {% endif %}
 
-      <div id="jurado3-block" class="form-grid-2 {% if not read_only %}hidden-block{% endif %}">
-        <div class="form-row">
-          {{ form.jurado3_ref.label_tag }}
-          {{ form.jurado3_ref }}
-          {% if form.jurado3_ref.help_text %}<div class="field-help">{{ form.jurado3_ref.help_text }}</div>{% endif %}
-          {% if form.jurado3_ref.errors %}<div class="field-err">{{ form.jurado3_ref.errors|join:', ' }}</div>{% endif %}
-        </div>
-        <div class="form-row">
-          {{ form.jurado3.label_tag }}
-          {{ form.jurado3 }}
-          {% if form.jurado3.help_text %}<div class="field-help">{{ form.jurado3.help_text }}</div>{% endif %}
-          {% if form.jurado3.errors %}<div class="field-err">{{ form.jurado3.errors|join:', ' }}</div>{% endif %}
-        </div>
+      <div id="jurado3-block" class="form-row {% if not read_only %}hidden-block{% endif %}">
+        {{ form.jurado3_ref.label_tag }}
+        {{ form.jurado3_ref }}
+        {% if form.jurado3_ref.help_text %}<div class="field-help">{{ form.jurado3_ref.help_text }}</div>{% endif %}
+        {% if form.jurado3_ref.errors %}<div class="field-err">{{ form.jurado3_ref.errors|join:', ' }}</div>{% endif %}
+        {{ form.jurado3 }}
       </div>
     </div>
 
@@ -201,6 +179,103 @@
   {% if read_only %}
     // Vista solo lectura: no mostrar lógica de "agregar" campos opcionales.
   {% else %}
+  const ADVISORS = {{ advisors_map_json|default:"{}"|safe }};
+  const JURORS = {{ jurors_map_json|default:"{}"|safe }};
+
+  function setVal(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = value ?? "";
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  // Asesor: al seleccionar, autocompletar campos inferiores.
+  const asesorSel = document.getElementById("id_asesor_ref");
+  asesorSel?.addEventListener("change", () => {
+    const id = (asesorSel.value || "").trim();
+    if (!id) {
+      setVal("id_asesor_nombre", "");
+      setVal("id_asesor_dni", "");
+      setVal("id_asesor_orcid", "");
+      return;
+    }
+    const a = ADVISORS[id];
+    if (!a) return;
+    setVal("id_asesor_nombre", a.nombre || "");
+    setVal("id_asesor_dni", a.dni || "");
+    setVal("id_asesor_orcid", a.orcid || "");
+  });
+
+  // Jurados: guardar nombre en hidden input (solo combo en la UI) y evitar repetidos.
+  function updateJurorOptions() {
+    const sels = [1, 2, 3].map((i) => document.getElementById(`id_jurado${i}_ref`));
+    const selected = sels.map((s) => (s && s.value ? String(s.value).trim() : ""));
+
+    // Si hay duplicados, limpiar jurado2/jurado3 primero (regla simple).
+    if (selected[0] && selected[1] && selected[0] === selected[1]) {
+      if (sels[1]) sels[1].value = "";
+      setVal("id_jurado2", "");
+      selected[1] = "";
+    }
+    if (selected[0] && selected[2] && selected[0] === selected[2]) {
+      if (sels[2]) sels[2].value = "";
+      setVal("id_jurado3", "");
+      selected[2] = "";
+    }
+    if (selected[1] && selected[2] && selected[1] === selected[2]) {
+      if (sels[2]) sels[2].value = "";
+      setVal("id_jurado3", "");
+      selected[2] = "";
+    }
+
+    sels.forEach((sel, idx) => {
+      if (!sel) return;
+      const others = selected.filter((v, j) => j !== idx && !!v);
+      Array.from(sel.options).forEach((opt) => {
+        const v = (opt.value || "").trim();
+        if (!v) {
+          opt.disabled = false;
+          opt.hidden = false;
+          return;
+        }
+        const shouldBlock = others.includes(v);
+        opt.disabled = shouldBlock;
+        opt.hidden = shouldBlock;
+      });
+    });
+  }
+
+  function bindJurado(idx) {
+    const sel = document.getElementById(`id_jurado${idx}_ref`);
+    sel?.addEventListener("change", () => {
+      const id = (sel.value || "").trim();
+      updateJurorOptions();
+      if (!id) {
+        setVal(`id_jurado${idx}`, "");
+        return;
+      }
+      const j = JURORS[id];
+      if (!j) return;
+      setVal(`id_jurado${idx}`, j.nombre || "");
+    });
+  }
+  bindJurado(1);
+  bindJurado(2);
+  bindJurado(3);
+
+  // Init: si ya hay seleccion, sincronizar valores/estado de opciones.
+  if (asesorSel && (asesorSel.value || "").trim()) {
+    asesorSel.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  [1, 2, 3].forEach((i) => {
+    const sel = document.getElementById(`id_jurado${i}_ref`);
+    if (sel && (sel.value || "").trim()) {
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  });
+  updateJurorOptions();
+
   const author2Block = document.getElementById("author2-block");
   const author2Action = document.getElementById("author2-action");
   const btnAuthor2 = document.getElementById("btn-add-author2");
@@ -233,13 +308,13 @@
   }
 
   function showJurado2() {
-    show(jurado2Block, "grid");
+    show(jurado2Block, "block");
     hide(jurado2Action);
     show(jurado3Action, "flex");
   }
 
   function showJurado3() {
-    show(jurado3Block, "grid");
+    show(jurado3Block, "block");
     hide(jurado3Action);
   }
 
