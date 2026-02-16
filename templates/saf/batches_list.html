@@ -1,5 +1,5 @@
-﻿{% extends 'base.html' %}
-{% block title %}Publicacion SAF{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Publicación SAF{% endblock %}
 {% block content %}
 <style>
   .section-head { display:flex; gap:12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
@@ -46,46 +46,61 @@
 
 <div class="card">
   <div class="section-head">
-    <h3>Publicacion SAF</h3>
-    <div class="muted">Gestion de ZIP y enlaces DSpace</div>
+    <h3>Publicación SAF</h3>
+    <div class="muted">Generación de ZIP SAF y aplicación de enlaces DSpace</div>
   </div>
 
   {% if publish_groups %}
     <div class="muted" style="margin-bottom:12px;">
-      Sustentaciones listas para publicacion (APROBADO / POR PUBLICAR / PUBLICADO).
+      Sustentaciones listas para publicación (APROBADO / POR PUBLICAR / PUBLICADO).
     </div>
 
-    <div class="table-shell" style="margin-bottom:16px;">
+    <div class="table-shell">
       <div class="table-wrap">
         <table class="nice-table">
-          <thead><tr><th>Fecha</th><th>Grupo</th><th>Estado</th><th>Registros</th><th>SAF</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Grupo</th>
+              <th>Estado</th>
+              <th>Registros</th>
+              <th>SAF</th>
+              <th style="text-align:right;">Acciones</th>
+            </tr>
+          </thead>
           <tbody>
             {% for row in publish_groups %}
               <tr>
                 <td style="white-space:nowrap;">{{ row.group.date }}</td>
-                <td>
-                  <a href="{% url 'registry:groups_detail' row.group.id %}">{{ row.group.name }}</a>
-                </td>
+                <td><a href="{% url 'registry:groups_detail' row.group.id %}">{{ row.group.name }}</a></td>
                 <td><span class="status-badge" data-status="{{ row.group.status }}">{{ row.group.get_status_display|upper }}</span></td>
                 <td style="white-space:nowrap;">{{ row.group.total_records }}</td>
                 <td>
                   {% if row.batch %}
                     <span class="batch-badge" data-bstatus="{{ row.batch.status }}">{{ row.batch.get_status_display }}</span>
                     {% if row.batch.zip_path %}
-                      <span class="muted">| ZIP</span>
+                      <span class="muted">| ZIP listo</span>
                     {% endif %}
                   {% else %}
-                    <span class="muted">Sin lote</span>
+                    <span class="muted">No generado</span>
                   {% endif %}
                 </td>
                 <td style="text-align:right; white-space:nowrap;">
-                  {% if row.batch %}
-                    <a class="btn btn-primary btn-sm" href="{% url 'saf:batches_detail' row.batch.id %}">Abrir</a>
-                  {% else %}
-                    <form method="post" action="{% url 'saf:batches_create_from_group' row.group.id %}" style="margin:0; display:inline-block;">
+                  <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_detail' row.group.id %}">Abrir grupo</a>
+
+                  {% if row.group.status == 'APROBADO' %}
+                    <form method="post" action="{% url 'saf:groups_generate' row.group.id %}" style="margin:0; display:inline-block;" class="js-saf-generate" data-progress-url="{% url 'saf:groups_progress' row.group.id %}">
                       {% csrf_token %}
-                      <button class="btn btn-primary btn-sm" type="submit">Crear / Abrir</button>
+                      <button class="btn btn-success btn-sm" type="submit" data-confirm="¿Generar SAF para este grupo?">Generar SAF</button>
                     </form>
+                  {% endif %}
+
+                  {% if row.batch and row.batch.zip_path %}
+                    <a class="btn btn-primary btn-sm" href="{% url 'saf:groups_download' row.group.id %}">Descargar ZIP</a>
+                  {% endif %}
+
+                  {% if row.group.status == 'POR_PUBLICAR' or row.group.status == 'PUBLICADO' %}
+                    <a class="btn btn-warning btn-sm" href="{% url 'registry:groups_detail' row.group.id %}#publicacion">Aplicar enlaces</a>
                   {% endif %}
                 </td>
               </tr>
@@ -95,40 +110,7 @@
       </div>
     </div>
   {% else %}
-    <div class="muted" style="margin-bottom:16px;">No hay sustentaciones listas para publicacion aun.</div>
+    <div class="muted">No hay sustentaciones listas para publicación aún.</div>
   {% endif %}
-
-  <div class="section-head" style="margin-top:6px;">
-    <h3>Historial de lotes</h3>
-    <div class="muted">{% if batches %}{{ batches|length }} lote(s){% else %}Sin lotes{% endif %}</div>
-  </div>
-
-  <div class="table-shell">
-    <div class="table-wrap">
-      <table class="nice-table">
-        <thead><tr><th>Codigo</th><th>Grupo</th><th>Estado</th><th>Creado por</th><th>Fecha</th><th></th></tr></thead>
-        <tbody>
-          {% for b in batches %}
-            <tr>
-              <td><strong>{{ b.batch_code }}</strong></td>
-              <td>
-                {% if b.group %}
-                  <a href="{% url 'registry:groups_detail' b.group.id %}">{{ b.group.name }}</a>
-                {% else %}
-                  <span class="muted">-</span>
-                {% endif %}
-              </td>
-              <td><span class="batch-badge" data-bstatus="{{ b.status }}">{{ b.get_status_display }}</span></td>
-              <td>{{ b.created_by.username }}</td>
-              <td style="white-space:nowrap;">{{ b.created_at }}</td>
-              <td style="text-align:right;"><a class="btn btn-primary btn-sm" href="{% url 'saf:batches_detail' b.id %}">Ver</a></td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="6" class="muted">Sin lotes.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
 </div>
 {% endblock %}

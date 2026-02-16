@@ -76,13 +76,46 @@
       {% if can_submit_visible %}
         <form method="post" action="{% url 'registry:groups_submit' group.id %}" style="margin:0;">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm" type="submit" {% if not can_submit_now %}disabled title="Debes marcar todos los registros como LISTO para poder enviar."{% else %}onclick="return confirm('¿Enviar el grupo a auditoría?');"{% endif %}>Enviar a auditoría</button>
+          <button class="btn btn-success btn-sm" type="submit" {% if not can_submit_now %}disabled title="Debes marcar todos los registros como LISTO para poder enviar."{% else %}data-confirm="¿Enviar el grupo a auditoría?"{% endif %}>Enviar a auditoría</button>
         </form>
+      {% endif %}
+      {% if request.user.role == 'auditor' and group.status == 'APROBADO' %}
+        <form method="post" action="{% url 'saf:groups_generate' group.id %}" style="margin:0;" class="js-saf-generate" data-progress-url="{% url 'saf:groups_progress' group.id %}">
+          {% csrf_token %}
+          <button class="btn btn-success btn-sm" type="submit" data-confirm="¿Generar SAF para este grupo?">Generar SAF</button>
+        </form>
+      {% endif %}
+      {% if request.user.role == 'auditor' and pub_batch and pub_batch.zip_path %}
+        <a class="btn btn-primary btn-sm" href="{% url 'saf:groups_download' group.id %}">Descargar ZIP</a>
       {% endif %}
       <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_list' %}">Volver</a>
     </div>
   </div>
 </div>
+
+{% if request.user.role == 'auditor' %}
+  <div class="card" id="publicacion">
+    <h3 style="margin-top:0;">Publicación (DSpace)</h3>
+    {% if pub_batch and pub_batch.zip_path %}
+      <div class="muted" style="margin-bottom:10px;">
+        Sube aquí el `dspace_links.json` generado en el servidor DSpace para marcar como PUBLICADO y habilitar "Ver publicación".
+      </div>
+      <form method="post" action="{% url 'saf:groups_upload_links' group.id %}" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+        {% csrf_token %}
+        <div style="min-width:280px; flex:1;">
+          <label class="muted" style="display:block; margin-bottom:6px; font-weight:900;">Archivo JSON de enlaces</label>
+          {{ links_form.links_file }}
+          <div class="help">Ejemplo: `dspace_links.json` generado por el script `export_links_uai.bat` del ZIP.</div>
+        </div>
+        <div>
+          <button class="btn btn-success btn-sm" type="submit" data-confirm="¿Aplicar enlaces y marcar como PUBLICADO?">Aplicar enlaces</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="muted">Cuando el grupo esté APROBADO, genera el SAF para habilitar la descarga del ZIP y la carga del JSON.</div>
+    {% endif %}
+  </div>
+{% endif %}
 
 <div class="card">
   <h3 style="margin-top:0;">Registros</h3>

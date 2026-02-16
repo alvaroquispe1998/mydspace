@@ -152,11 +152,11 @@
     </div>
     <div class="header-actions">
       <a class="btn btn-secondary" href="{% url 'registry:records_edit' record.id %}">{% if can_edit %}Editar metadatos{% else %}Ver metadatos{% endif %}</a>
-      {% if request.user.role == 'cargador' or request.user.role == 'asesor' or request.user.role == 'auditor' %}
+      {% if request.user.role == 'cargador' or request.user.role == 'asesor' %}
         {% if record.status == 'LISTO' %}
           <form method="post" action="{% url 'registry:records_unready' record.id %}" style="margin:0;">
             {% csrf_token %}
-            <button class="btn btn-secondary" type="submit" onclick="return confirm('¿Volver a editar este registro?');">Volver a editar</button>
+            <button class="btn btn-secondary" type="submit" data-confirm="¿Volver a editar este registro?">Volver a editar</button>
           </form>
         {% elif can_edit %}
           <form method="post" action="{% url 'registry:records_mark_ready' record.id %}" style="margin:0;">
@@ -205,9 +205,9 @@
                 <a class="btn btn-secondary btn-sm" href="{{ f.file.url }}" target="_blank" rel="noopener">Abrir</a>
                 <button type="button" class="btn btn-secondary btn-sm btn-copy-link" data-url="{{ f.file.url }}">Copiar enlace</button>
                 {% if can_edit %}
-                  <form method="post" action="{% url 'registry:records_delete_file' record.id f.id %}" onsubmit="return confirm('¿Eliminar este archivo?');" style="margin:0;">
+                  <form method="post" action="{% url 'registry:records_delete_file' record.id f.id %}" style="margin:0;">
                     {% csrf_token %}
-                    <button class="btn btn-danger btn-sm" type="submit">Eliminar</button>
+                    <button class="btn btn-danger btn-sm" type="submit" data-confirm="¿Eliminar este archivo?">Eliminar</button>
                   </form>
                 {% endif %}
               </div>

@@ -94,6 +94,124 @@
       to { transform: translateY(-6px); opacity: 0; }
     }
 
+    /* Confirm modal (replaces browser confirm()) */
+    .confirm-overlay[hidden] { display: none !important; }
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(2, 6, 23, .55);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .confirm-dialog {
+      width: min(520px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.22);
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 22px 60px rgba(2, 6, 23, .30);
+      overflow: hidden;
+      transform: translateY(6px);
+      opacity: 0;
+      animation: confirm-in .16s ease-out forwards;
+    }
+    .confirm-head {
+      padding: 14px 16px 10px 16px;
+      background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.00));
+      border-bottom: 1px solid rgba(226,232,240,.9);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .confirm-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: .02em;
+    }
+    .confirm-close {
+      border: none;
+      background: transparent;
+      color: #0f172a;
+      border-radius: 10px;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 18px;
+      font-weight: 900;
+    }
+    .confirm-close:hover { background: rgba(226,232,240,.85); }
+    .confirm-body {
+      padding: 14px 16px 6px 16px;
+      color: #0f172a;
+      font-size: 14px;
+      line-height: 1.3rem;
+    }
+    .confirm-actions {
+      padding: 12px 16px 16px 16px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .confirm-actions .btn { font-weight: 900; }
+    .confirm-actions .btn-secondary { background: #334155; }
+    @keyframes confirm-in { to { transform: translateY(0); opacity: 1; } }
+
+    /* SAF job overlay (progress) */
+    .job-overlay[hidden] { display: none !important; }
+    .job-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      background: rgba(2, 6, 23, .45);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+    .job-dialog {
+      width: min(560px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.22);
+      background: rgba(255,255,255,.97);
+      box-shadow: 0 22px 60px rgba(2, 6, 23, .30);
+      overflow: hidden;
+    }
+    .job-head {
+      padding: 14px 16px 10px 16px;
+      background: linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.00));
+      border-bottom: 1px solid rgba(226,232,240,.9);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .job-title { margin: 0; font-size: 14px; font-weight: 900; color:#0f172a; }
+    .job-body { padding: 14px 16px 16px 16px; }
+    .job-line { display:flex; gap:10px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+    .job-status { color:#0f172a; font-weight: 800; }
+    .job-meta { color:#64748b; font-size: 13px; }
+    .job-bar {
+      height: 12px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+      border: 1px solid rgba(148,163,184,.25);
+      margin-top: 10px;
+    }
+    .job-bar > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(var(--brand-rgb), .95), rgba(var(--brand-rgb), .70));
+      border-radius: 999px;
+      transition: width .18s ease;
+    }
+    .job-msg { margin-top: 10px; color:#334155; font-size: 13px; white-space: pre-wrap; }
+    .job-actions { margin-top: 14px; display:flex; gap:10px; justify-content: flex-end; flex-wrap: wrap; }
+
     /* Status + action chips (used across pages) */
     .status-badge {
       display: inline-flex;
@@ -148,9 +266,10 @@
 
     /* App layout: header + sidebar + content */
     :root {
+      /* Brand accent (higher contrast on dark UI) */
       --brand-600: #0f766e;
-      --brand-500: #14b8a6;
-      --brand-rgb: 20, 184, 166;
+      --brand-500: #2dd4bf;
+      --brand-rgb: 45, 212, 191;
       --header-h: 56px;
       --sidebar-w: 260px;
       --sidebar-w-collapsed: 72px;
@@ -168,7 +287,7 @@
       align-items: center;
       gap: 10px;
       padding: 0 14px;
-      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.92));
+      background: linear-gradient(180deg, rgba(10, 18, 33, .98), rgba(8, 12, 22, .96));
       color: #e2e8f0;
       border-bottom: 1px solid rgba(148,163,184,.20);
     }
@@ -179,14 +298,6 @@
       text-decoration: none;
       color: inherit;
       min-width: 0;
-    }
-    .brand img {
-      width: 30px;
-      height: 30px;
-      object-fit: contain;
-      border-radius: 8px;
-      background: rgba(255,255,255,.06);
-      padding: 4px;
     }
     .brand span {
       font-weight: 900;
@@ -212,6 +323,16 @@
     .icon-btn:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: 2px; }
     .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
+    .uai-mark {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: rgba(255,255,255,.06);
+      padding: 5px;
+      border: 1px solid rgba(148,163,184,.18);
+    }
+
     .user-pill {
       display: inline-flex;
       align-items: center;
@@ -228,7 +349,16 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .user-pill svg { width: 18px; height: 18px; }
+    .user-pill svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: .95;
+    }
 
     .app-body {
       display: grid;
@@ -247,14 +377,20 @@
       position: sticky;
       top: var(--header-h);
       height: calc(100vh - var(--header-h));
-      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,6,23,.94));
+      background: linear-gradient(180deg, rgba(9, 15, 27, .99), rgba(5, 8, 14, .98));
       color: rgba(226,232,240,.92);
       border-right: 1px solid rgba(148,163,184,.18);
       overflow: hidden;
     }
 
     .sb-nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; }
-    .sb-sec { border-radius: 14px; border: 1px solid rgba(148,163,184,.14); background: rgba(255,255,255,.03); overflow: hidden; }
+    .sb-sec {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+      overflow: hidden;
+    }
     .sb-sec-btn {
       width: 100%;
       position: relative;
@@ -272,9 +408,13 @@
       text-transform: uppercase;
       font-size: 11px;
     }
-    .sb-sec-btn:hover { background: rgba(255,255,255,.05); }
+    .sb-sec-btn:hover { background: rgba(255,255,255,.08); }
     .sb-sec-btn:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: -3px; }
     .sb-sec-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
+    .sb-sec-btn[aria-expanded="true"] {
+      background: rgba(255,255,255,.09);
+      box-shadow: inset 4px 0 0 rgba(var(--brand-rgb), .70), inset 0 -1px 0 rgba(255,255,255,.08);
+    }
 
     .sb-caret { width: 18px; height: 18px; display: inline-flex; align-items:center; justify-content:center; opacity: .80; }
     .sb-caret svg { width: 16px; height: 16px; }
@@ -294,14 +434,17 @@
       font-weight: 800;
       font-size: 14px;
     }
-    .sb-item:hover { background: rgba(255,255,255,.06); }
+    .sb-item:hover { background: rgba(255,255,255,.09); }
     .sb-item:focus-visible { outline: 3px solid rgba(var(--brand-rgb), .55); outline-offset: 2px; }
     .sb-item svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .95; }
 
     .sb-item.is-active {
-      background: linear-gradient(90deg, rgba(var(--brand-rgb), .28), rgba(var(--brand-rgb), .08));
-      border: 1px solid rgba(var(--brand-rgb), .38);
+      color: #06261f;
+      background: linear-gradient(180deg, rgba(var(--brand-rgb), .95), rgba(var(--brand-rgb), .78));
+      border: 1px solid rgba(255,255,255,.35);
+      box-shadow: 0 14px 28px rgba(2, 6, 23, .28);
     }
+    .sb-item.is-active svg { opacity: 1; }
 
     .sb-footer {
       position: absolute;
@@ -310,7 +453,7 @@
       bottom: 0;
       padding: 10px;
       border-top: 1px solid rgba(148,163,184,.18);
-      background: rgba(2,6,23,.35);
+      background: linear-gradient(180deg, rgba(5, 8, 14, .40), rgba(5, 8, 14, .72));
       display: grid;
       gap: 10px;
     }
@@ -319,8 +462,8 @@
       gap: 2px;
       padding: 10px;
       border-radius: 14px;
-      border: 1px solid rgba(148,163,184,.14);
-      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
     }
     .sb-user .u1 { font-weight: 900; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .sb-user .u2 { font-size: 12px; color: rgba(226,232,240,.72); }
@@ -332,12 +475,15 @@
       text-decoration: none;
       padding: 10px 12px;
       border-radius: 14px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(148,163,184,.18);
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
       color: rgba(226,232,240,.92);
       font-weight: 900;
     }
-    .sb-logout:hover { background: rgba(255,255,255,.10); }
+    .sb-logout:hover {
+      background: rgba(255,255,255,.12);
+      border-color: rgba(var(--brand-rgb), .55);
+    }
     .sb-logout svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     .app-content { min-width: 0; }
@@ -356,10 +502,16 @@
       margin: -1px;
       overflow: hidden;
       clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
       white-space: nowrap;
       border: 0;
     }
     body.sidebar-collapsed .sb-footer .sb-user { display: none; }
+    body.sidebar-collapsed .sb-logout {
+      justify-content: center;
+      padding: 10px;
+    }
+    body.sidebar-collapsed .sb-logout span { display: none; }
 
     /* Flyout panels when collapsed */
     body.sidebar-collapsed .sb-panel[hidden] { display: none !important; }
@@ -376,6 +528,17 @@
       background: rgba(15,23,42,.96);
       box-shadow: var(--shadow-2);
       z-index: 1200;
+    }
+    /* In collapsed mode, labels should be visible inside the flyout panel */
+    body.sidebar-collapsed .sb-panel .sb-item .sb-label {
+      position: static !important;
+      width: auto;
+      height: auto;
+      margin: 0;
+      overflow: visible;
+      clip: auto;
+      clip-path: none;
+      white-space: nowrap;
     }
 
     @media (max-width: 920px) {
@@ -407,27 +570,22 @@
   {% if request.user.is_authenticated %}
   <div class="app-shell">
     <header class="app-header">
-      <button class="icon-btn mobile-only" id="btn-sidebar-mobile" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="app-sidebar">
+      <button class="icon-btn" id="btn-sidebar-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="app-sidebar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
 
       <a class="brand" href="{% url 'dashboard' %}">
-        <img src="{% static 'logoUAI.png' %}" alt="UAI">
         <span>Repositorio Tesis UAI</span>
       </a>
 
       <div class="header-spacer"></div>
 
-      <button class="icon-btn desktop-only" id="btn-sidebar-collapse" type="button" aria-label="Colapsar sidebar" aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-
-      <div class="user-pill" title="{{ request.user.username }} ({{ request.user.role }})">
+      <div class="user-pill" title="{{ request.user.username }}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4"/></svg>
-        <span>{{ request.user.username }} ({{ request.user.role }})</span>
+        <span>{{ request.user.username }}</span>
       </div>
 
-      <a class="btn btn-secondary btn-sm" href="{% url 'accounts:logout' %}">Salir</a>
+      <img class="uai-mark" src="{% static 'logoUAI.png' %}" alt="UAI">
     </header>
 
     <div class="app-body">
@@ -464,9 +622,9 @@
                 <span class="sb-label">Sustentaciones</span>
               </a>
               {% if request.user.role == 'auditor' %}
-                <a class="sb-item {% if request.resolver_match.namespace == 'saf' %}is-active{% endif %}" title="Publicacion SAF" href="{% url 'saf:batches_list' %}" {% if request.resolver_match.namespace == 'saf' %}aria-current="page"{% endif %}>
+                <a class="sb-item {% if request.resolver_match.namespace == 'saf' %}is-active{% endif %}" title="Publicación SAF" href="{% url 'saf:batches_list' %}" {% if request.resolver_match.namespace == 'saf' %}aria-current="page"{% endif %}>
                   <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
-                  <span class="sb-label">Publicacion SAF</span>
+                  <span class="sb-label">Publicación SAF</span>
                 </a>
               {% endif %}
             </div>
@@ -554,10 +712,6 @@
         </nav>
 
         <div class="sb-footer">
-          <div class="sb-user" aria-label="Usuario actual">
-            <div class="u1">{{ request.user.username }}</div>
-            <div class="u2">Rol: {{ request.user.role }}</div>
-          </div>
           <a class="sb-logout" title="Salir" href="{% url 'accounts:logout' %}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
             <span>Salir</span>
@@ -592,6 +746,41 @@
   {% else %}
   </div>
   {% endif %}
+
+  <div class="confirm-overlay" id="confirm-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <div class="confirm-dialog">
+      <div class="confirm-head">
+        <h3 class="confirm-title" id="confirm-title">Confirmar</h3>
+        <button type="button" class="confirm-close" id="confirm-close" aria-label="Cerrar" title="Cerrar">×</button>
+      </div>
+      <div class="confirm-body" id="confirm-message"></div>
+      <div class="confirm-actions">
+        <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
+        <button type="button" class="btn btn-success" id="confirm-ok">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="job-overlay" id="job-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="job-title">
+    <div class="job-dialog">
+      <div class="job-head">
+        <h3 class="job-title" id="job-title">Generando SAF</h3>
+        <button type="button" class="confirm-close" id="job-close" aria-label="Cerrar" title="Cerrar">×</button>
+      </div>
+      <div class="job-body">
+        <div class="job-line">
+          <div class="job-status" id="job-status">Iniciando...</div>
+          <div class="job-meta" id="job-meta">0%</div>
+        </div>
+        <div class="job-bar"><div id="job-bar-fill"></div></div>
+        <div class="job-msg" id="job-msg"></div>
+        <div class="job-actions">
+          <button type="button" class="btn btn-secondary" id="job-reload" hidden>Actualizar</button>
+          <button type="button" class="btn btn-secondary" id="job-hide">Ocultar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function () {
@@ -633,12 +822,218 @@
     })();
 
     (function () {
+      // Replace browser confirm() with a consistent modal.
+      var overlay = document.getElementById('confirm-overlay');
+      if (!overlay) return;
+      var btnOk = document.getElementById('confirm-ok');
+      var btnCancel = document.getElementById('confirm-cancel');
+      var btnClose = document.getElementById('confirm-close');
+      var elTitle = document.getElementById('confirm-title');
+      var elMsg = document.getElementById('confirm-message');
+
+      var pending = null; // { type: 'form'|'link'|'button', ... }
+
+      function isVisible() { return !overlay.hidden; }
+
+      function closeModal() {
+        overlay.hidden = true;
+        pending = null;
+      }
+
+      function openModal(opts) {
+        pending = opts || null;
+        elTitle.textContent = (opts && opts.title) ? opts.title : 'Confirmar';
+        elMsg.textContent = (opts && opts.message) ? opts.message : '¿Confirmas la acción?';
+        overlay.hidden = false;
+        // Focus OK by default to keep flow fast
+        window.setTimeout(function () { if (btnOk && btnOk.focus) btnOk.focus(); }, 0);
+      }
+
+      function onConfirm() {
+        var p = pending;
+        closeModal();
+        if (!p) return;
+        if (p.type === 'link' && p.href) {
+          window.location.href = p.href;
+          return;
+        }
+        if (p.type === 'form' && p.form) {
+          // requestSubmit keeps HTML5 validation behavior if any.
+          if (p.submitter && p.form.requestSubmit) p.form.requestSubmit(p.submitter);
+          else if (p.form.requestSubmit) p.form.requestSubmit();
+          else p.form.submit();
+          return;
+        }
+        if (p.type === 'button' && p.button) {
+          p.button.click();
+        }
+      }
+
+      function onCancel() { closeModal(); }
+
+      document.addEventListener('keydown', function (ev) {
+        if (!isVisible()) return;
+        if (ev.key === 'Escape') { ev.preventDefault(); closeModal(); }
+      });
+
+      overlay.addEventListener('click', function (ev) {
+        // Click outside dialog closes
+        if (ev.target === overlay) closeModal();
+      });
+      if (btnCancel) btnCancel.addEventListener('click', onCancel);
+      if (btnClose) btnClose.addEventListener('click', onCancel);
+      if (btnOk) btnOk.addEventListener('click', onConfirm);
+
+      document.addEventListener('click', function (ev) {
+        var el = ev.target && ev.target.closest ? ev.target.closest('[data-confirm]') : null;
+        if (!el) return;
+        var msg = (el.getAttribute('data-confirm') || '').trim();
+        if (!msg) return;
+        var title = (el.getAttribute('data-confirm-title') || '').trim();
+
+        // Avoid double-triggering when another handler already prevented.
+        ev.preventDefault();
+
+        // If anchor: navigate after confirm
+        if (el.tagName === 'A') {
+          openModal({ type: 'link', href: el.getAttribute('href'), title: title || 'Confirmar', message: msg });
+          return;
+        }
+
+        // If inside form: submit after confirm
+        var form = el.closest ? el.closest('form') : null;
+        if (form) {
+          openModal({ type: 'form', form: form, submitter: el, title: title || 'Confirmar', message: msg });
+          return;
+        }
+
+        openModal({ type: 'button', button: el, title: title || 'Confirmar', message: msg });
+      });
+    })();
+
+    (function () {
+      // SAF progress overlay for forms with class .js-saf-generate
+      var overlay = document.getElementById('job-overlay');
+      if (!overlay) return;
+      var elTitle = document.getElementById('job-title');
+      var elStatus = document.getElementById('job-status');
+      var elMeta = document.getElementById('job-meta');
+      var elMsg = document.getElementById('job-msg');
+      var barFill = document.getElementById('job-bar-fill');
+      var btnHide = document.getElementById('job-hide');
+      var btnClose = document.getElementById('job-close');
+      var btnReload = document.getElementById('job-reload');
+
+      var pollTimer = null;
+      var currentProgressUrl = null;
+
+      function setVisible(v) { overlay.hidden = !v; }
+      function isVisible() { return !overlay.hidden; }
+
+      function setBar(pct) {
+        var p = Math.max(0, Math.min(100, Number(pct || 0)));
+        if (barFill) barFill.style.width = p + '%';
+        if (elMeta) elMeta.textContent = p + '%';
+      }
+
+      function setText(status, msg) {
+        if (elStatus) elStatus.textContent = status || '';
+        if (elMsg) elMsg.textContent = msg || '';
+      }
+
+      function stopPolling() {
+        if (pollTimer) window.clearInterval(pollTimer);
+        pollTimer = null;
+        currentProgressUrl = null;
+      }
+
+      function startPolling(progressUrl) {
+        currentProgressUrl = progressUrl;
+        if (!progressUrl) return;
+        if (pollTimer) window.clearInterval(pollTimer);
+        pollTimer = window.setInterval(function () {
+          fetch(progressUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+              if (!j || !j.ok) return;
+              var total = j.total || 0;
+              var done = j.done || 0;
+              var pct = (typeof j.percent === 'number') ? j.percent : (total ? Math.floor(done * 100 / total) : 0);
+              setBar(pct);
+
+              var label = 'En proceso';
+              if (j.status === 'RUNNING') label = 'Generando SAF...';
+              if (j.status === 'DONE') label = 'Completado';
+              if (j.status === 'FAILED') label = 'Fallido';
+              setText(label, j.message || ('Procesados: ' + done + '/' + total));
+
+              if (j.status === 'DONE') {
+                setBar(100);
+                stopPolling();
+                // Reload to show ZIP buttons/status in UI
+                window.setTimeout(function () { window.location.reload(); }, 650);
+              } else if (j.status === 'FAILED') {
+                stopPolling();
+                if (btnReload) btnReload.hidden = false;
+              }
+            })
+            .catch(function () { /* ignore */ });
+        }, 900);
+      }
+
+      function openJob(title) {
+        if (elTitle) elTitle.textContent = title || 'Procesando';
+        if (btnReload) btnReload.hidden = true;
+        setBar(0);
+        setText('Iniciando...', '');
+        setVisible(true);
+      }
+
+      function hideJob() { setVisible(false); }
+
+      if (btnHide) btnHide.addEventListener('click', function () { hideJob(); });
+      if (btnClose) btnClose.addEventListener('click', function () { stopPolling(); hideJob(); });
+      if (btnReload) btnReload.addEventListener('click', function () { window.location.reload(); });
+      overlay.addEventListener('click', function (ev) { if (ev.target === overlay) hideJob(); });
+      document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && isVisible()) hideJob(); });
+
+      document.addEventListener('submit', function (ev) {
+        var form = ev.target;
+        if (!form || !form.classList || !form.classList.contains('js-saf-generate')) return;
+        ev.preventDefault();
+
+        var progressUrl = form.getAttribute('data-progress-url') || '';
+        openJob('Generando SAF');
+
+        fetch(form.getAttribute('action'), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+          body: new FormData(form)
+        })
+          .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
+          .then(function (out) {
+            var r = out.r, j = out.j;
+            if (!r.ok || !j || !j.ok) {
+              setText('No se pudo iniciar', (j && j.message) ? j.message : 'Error iniciando el proceso.');
+              if (btnReload) btnReload.hidden = false;
+              return;
+            }
+            startPolling(progressUrl);
+          })
+          .catch(function () {
+            setText('Error', 'No se pudo conectar con el servidor.');
+            if (btnReload) btnReload.hidden = false;
+          });
+      });
+    })();
+
+    (function () {
       var sidebar = document.getElementById('app-sidebar');
       if (!sidebar) return;
 
       var backdrop = document.getElementById('sidebar-backdrop');
-      var btnMobile = document.getElementById('btn-sidebar-mobile');
-      var btnCollapse = document.getElementById('btn-sidebar-collapse');
+      var btnToggle = document.getElementById('btn-sidebar-toggle');
 
       function isMobile() {
         return window.matchMedia && window.matchMedia('(max-width: 920px)').matches;
@@ -651,7 +1046,7 @@
 
       function setMobileOpen(open) {
         document.body.classList.toggle('sidebar-open', !!open);
-        if (btnMobile) btnMobile.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (btnToggle) btnToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         setBackdrop(open);
 
         if (open) {
@@ -660,13 +1055,13 @@
             if (first && first.focus) first.focus();
           }, 0);
         } else {
-          if (btnMobile && btnMobile.focus) btnMobile.focus();
+          if (btnToggle && btnToggle.focus) btnToggle.focus();
         }
       }
 
       function setCollapsed(collapsed) {
         document.body.classList.toggle('sidebar-collapsed', !!collapsed);
-        if (btnCollapse) btnCollapse.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
+        if (btnToggle) btnToggle.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
         try { localStorage.setItem('uai_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) {}
       }
 
@@ -719,6 +1114,14 @@
       })();
 
       (function initOpenSection() {
+        // When the sidebar is collapsed on desktop, keep flyouts closed by default.
+        // Otherwise the active item forces a panel to stay open and it feels "stuck".
+        if (document.body.classList.contains('sidebar-collapsed') && !isMobile()) {
+          closeAllSections();
+          try { sessionStorage.removeItem('uai_sidebar_open_section'); } catch (e) {}
+          return;
+        }
+
         var activeItem = sidebar.querySelector('.sb-item.is-active');
         if (activeItem) {
           var s1 = activeItem.closest ? activeItem.closest('.sb-sec') : null;
@@ -749,18 +1152,26 @@
         }
 
         var link = ev.target && ev.target.closest ? ev.target.closest('a') : null;
-        if (link && isMobile()) setMobileOpen(false);
+        if (!link) return;
+        if (isMobile()) {
+          setMobileOpen(false);
+          return;
+        }
+        if (document.body.classList.contains('sidebar-collapsed')) {
+          closeAllSections();
+          try { sessionStorage.removeItem('uai_sidebar_open_section'); } catch (e) {}
+        }
       });
 
-      if (btnCollapse) {
-        btnCollapse.addEventListener('click', function () {
+      if (btnToggle) {
+        btnToggle.addEventListener('click', function () {
+          if (isMobile()) {
+            setMobileOpen(!document.body.classList.contains('sidebar-open'));
+            return;
+          }
           setCollapsed(!document.body.classList.contains('sidebar-collapsed'));
-        });
-      }
-
-      if (btnMobile) {
-        btnMobile.addEventListener('click', function () {
-          setMobileOpen(!document.body.classList.contains('sidebar-open'));
+          closeAllSections();
+          try { sessionStorage.removeItem('uai_sidebar_open_section'); } catch (e) {}
         });
       }
 

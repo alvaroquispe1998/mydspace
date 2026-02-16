@@ -1,10 +1,11 @@
 from datetime import datetime
 from pathlib import Path
 import json
+import threading
 
 from django.contrib import messages
-from django.db import models
-from django.http import FileResponse, Http404
+from django.db import close_old_connections, models
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -234,35 +235,53 @@ def _get_or_create_group_batch(group: SustentationGroup, user) -> SafBatch:
     return SafBatch.objects.create(batch_code=code, created_by=user, group=group)
 
 
+def _wants_json(request) -> bool:
+    accept = (request.headers.get("Accept") or "").lower()
+    xrw = (request.headers.get("X-Requested-With") or "").lower()
+    return ("application/json" in accept) or (xrw == "xmlhttprequest")
+
+
 @role_required(User.ROLE_AUDITOR)
 @require_POST
 def groups_generate_view(request, group_id: int):
     group = get_object_or_404(SustentationGroup, pk=group_id)
     records = list(group.records.order_by("nro"))
     if not records:
-        messages.error(request, "El grupo no tiene registros.")
+        msg = "El grupo no tiene registros."
+        if _wants_json(request):
+            return JsonResponse({"ok": False, "message": msg}, status=400)
+        messages.error(request, msg)
         return redirect("registry:groups_detail", group_id=group.id)
 
     # Allow generating when the group is APROBADO or already moved to POR_PUBLICAR due to a previous attempt.
     if group.status not in [SustentationGroup.STATUS_APROBADO, SustentationGroup.STATUS_POR_PUBLICAR]:
-        messages.error(request, "Este grupo no está listo para generar SAF en su estado actual.")
+        msg = "Este grupo no está listo para generar SAF en su estado actual."
+        if _wants_json(request):
+            return JsonResponse({"ok": False, "message": msg}, status=400)
+        messages.error(request, msg)
         return redirect("registry:groups_detail", group_id=group.id)
 
     not_ok = [r.nro for r in records if r.status not in [ThesisRecord.STATUS_APROBADO, ThesisRecord.STATUS_POR_PUBLICAR]]
     if not_ok:
         pretty = ", ".join(f"{n:03d}" for n in sorted(not_ok))
-        messages.error(
-            request,
-            f"Para generar SAF, todos los registros deben estar APROBADO (o POR PUBLICAR). Revisa: {pretty}.",
-        )
+        msg = f"Para generar SAF, todos los registros deben estar APROBADO (o POR PUBLICAR). Revisa: {pretty}."
+        if _wants_json(request):
+            return JsonResponse({"ok": False, "message": msg}, status=400)
+        messages.error(request, msg)
         return redirect("registry:groups_detail", group_id=group.id)
 
     batch = _get_or_create_group_batch(group, request.user)
     if batch.status == SafBatch.STATUS_RUNNING:
-        messages.warning(request, "El SAF ya está en proceso. Espera a que termine.")
+        msg = "El SAF ya está en proceso. Espera a que termine."
+        if _wants_json(request):
+            return JsonResponse({"ok": True, "message": msg, "status": batch.status, "batch_id": batch.id})
+        messages.warning(request, msg)
         return redirect("registry:groups_detail", group_id=group.id)
     if batch.status == SafBatch.STATUS_DONE and batch.zip_path:
-        messages.warning(request, "Este SAF ya fue generado. No se puede generar nuevamente.")
+        msg = "Este SAF ya fue generado. No se puede generar nuevamente."
+        if _wants_json(request):
+            return JsonResponse({"ok": False, "message": msg, "status": batch.status, "batch_id": batch.id}, status=400)
+        messages.warning(request, msg)
         return redirect("registry:groups_detail", group_id=group.id)
 
     # Ensure every record is present as an item.
@@ -271,13 +290,63 @@ def groups_generate_view(request, group_id: int):
     if to_create:
         SafBatchItem.objects.bulk_create(to_create)
 
-    ok, msg = generate_saf_batch(batch)
-    if ok:
-        messages.success(request, msg)
-    else:
-        messages.warning(request, msg)
-    group.recompute_status(save=True)
+    # Mark as running and start in background thread so the UI can poll progress.
+    batch.status = SafBatch.STATUS_RUNNING
+    batch.log_text = "Iniciando generación SAF..."
+    batch.save(update_fields=["status", "log_text", "updated_at"])
+
+    batch_id = batch.id
+    group_pk = group.id
+
+    def _run():
+        close_old_connections()
+        try:
+            b = SafBatch.objects.get(pk=batch_id)
+            generate_saf_batch(b)
+            g = SustentationGroup.objects.get(pk=group_pk)
+            g.recompute_status(save=True)
+        except Exception as exc:  # noqa: BLE001
+            try:
+                b = SafBatch.objects.get(pk=batch_id)
+                b.status = SafBatch.STATUS_FAILED
+                b.log_text = f"Error: {exc}"
+                b.save(update_fields=["status", "log_text", "updated_at"])
+            except Exception:  # noqa: BLE001
+                pass
+        finally:
+            close_old_connections()
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    msg = "Generación SAF iniciada."
+    if _wants_json(request):
+        return JsonResponse({"ok": True, "message": msg, "status": SafBatch.STATUS_RUNNING, "batch_id": batch_id})
+    messages.success(request, msg)
     return redirect("registry:groups_detail", group_id=group.id)
+
+
+@role_required(User.ROLE_AUDITOR)
+def groups_progress_view(request, group_id: int):
+    group = get_object_or_404(SustentationGroup, pk=group_id)
+    batch = SafBatch.objects.filter(group=group).order_by("-created_at").first()
+    if not batch:
+        return JsonResponse({"ok": False, "message": "Sin SAF para este grupo."}, status=404)
+
+    total = batch.items.count()
+    done = batch.items.exclude(result=SafBatchItem.RESULT_PENDING).count()
+    percent = int((done * 100) / total) if total else 0
+    return JsonResponse(
+        {
+            "ok": True,
+            "batch_id": batch.id,
+            "status": batch.status,
+            "total": total,
+            "done": done,
+            "percent": percent,
+            "zip_ready": bool(batch.zip_path),
+            "message": (batch.log_text or "").strip(),
+        }
+    )
 
 
 @role_required(User.ROLE_AUDITOR)

@@ -237,12 +237,17 @@ def generate_saf_batch(batch: SafBatch) -> Tuple[bool, str]:
     # Mapea carpetas de carrera -> handle para generar scripts de importación.
     career_targets = {}
 
-    items = batch.items.select_related("record__career").prefetch_related("record__files").all()
-    for item in items:
+    items = list(batch.items.select_related("record__career").prefetch_related("record__files").all())
+    total_items = len(items)
+    for idx, item in enumerate(items, start=1):
         record = item.record
         item_folder = f"item_{record.nro:03d}"
         item.item_folder_name = item_folder
         try:
+            # Update progress text for UI polling.
+            batch.log_text = f"Procesando {idx}/{total_items} (registro {record.nro:03d})..."
+            batch.save(update_fields=["log_text", "updated_at"])
+
             if record.status not in [ThesisRecord.STATUS_APROBADO, ThesisRecord.STATUS_POR_PUBLICAR]:
                 raise ValueError("Registro no está aprobado para SAF.")
 
