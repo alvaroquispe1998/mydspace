@@ -9,7 +9,7 @@ def role_required(*allowed_roles: str):
         @login_required
         @wraps(view_func)
         def _wrapped(request, *args, **kwargs):
-            if request.user.role in allowed_roles:
+            if getattr(request.user, "is_superuser", False) or request.user.role in allowed_roles:
                 return view_func(request, *args, **kwargs)
             messages.error(request, "No tienes permisos para realizar esta acción.")
             return redirect("dashboard")

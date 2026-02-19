@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -11,6 +12,13 @@ from appconfig.models import CareerConfig
 from registry.forms import AuditCommentForm, SustentationGroupForm, ThesisFileUploadForm, ThesisRecordForm
 from registry.models import AuditEvent, SustentationGroup, ThesisFile, ThesisRecord
 from registry.services import populate_file_metadata, validate_record_for_approval, validate_record_for_submission
+
+
+def _redirect_group_detail(group_id: int, career_filter: str = ""):
+    url = reverse("registry:groups_detail", args=[group_id])
+    if career_filter.isdigit():
+        url = f"{url}?career={career_filter}"
+    return redirect(url)
 
 
 @login_required
@@ -58,7 +66,8 @@ def groups_detail_view(request, group_id: int):
     )
     if career_filter.isdigit():
         records_qs = records_qs.filter(career_id=int(career_filter))
-    can_manage = request.user.role in [User.ROLE_CARGADOR, User.ROLE_ASESOR]
+    can_manage = request.user.has_role(User.ROLE_CARGADOR, User.ROLE_ASESOR)
+    can_audit = request.user.is_auditor
     total_records = group.records.count()
     ready_records = group.records.filter(status=ThesisRecord.STATUS_LISTO).count()
     can_submit_visible = (
@@ -71,7 +80,7 @@ def groups_detail_view(request, group_id: int):
 
     pub_batch = None
     links_form = None
-    if request.user.role == User.ROLE_AUDITOR:
+    if can_audit:
         from saf.forms import DspaceLinksUploadForm
         from saf.models import SafBatch
 
@@ -91,6 +100,7 @@ def groups_detail_view(request, group_id: int):
             "total_records": total_records,
             "ready_records": ready_records,
             "can_add_records": can_add_records,
+            "can_audit": can_audit,
             "pub_batch": pub_batch,
             "links_form": links_form,
         },
@@ -101,7 +111,7 @@ def groups_detail_view(request, group_id: int):
 @require_POST
 def groups_submit_view(request, group_id: int):
     group = get_object_or_404(SustentationGroup, pk=group_id)
-    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR]:
+    if not request.user.has_role(User.ROLE_CARGADOR, User.ROLE_ASESOR):
         messages.error(request, "No tienes permisos para enviar este grupo a auditoría.")
         return redirect("registry:groups_detail", group_id=group.id)
     if group.status not in [SustentationGroup.STATUS_ARMADO, SustentationGroup.STATUS_OBSERVADO]:
@@ -146,9 +156,90 @@ def groups_submit_view(request, group_id: int):
 
 @login_required
 @require_POST
+def groups_audit_bulk_view(request, group_id: int):
+    group = get_object_or_404(SustentationGroup, pk=group_id)
+    career_filter = (request.POST.get("career_filter") or "").strip()
+    if not request.user.is_auditor:
+        messages.error(request, "No tienes permisos para auditar registros.")
+        return _redirect_group_detail(group.id, career_filter=career_filter)
+
+    action = (request.POST.get("bulk_action") or "").strip().lower()
+    if action not in {"approve", "observe"}:
+        messages.error(request, "Accion masiva no valida.")
+        return _redirect_group_detail(group.id, career_filter=career_filter)
+
+    ids = []
+    for raw in request.POST.getlist("record_ids"):
+        if raw.isdigit():
+            ids.append(int(raw))
+    ids = list(dict.fromkeys(ids))
+    if not ids:
+        messages.warning(request, "Selecciona al menos un registro.")
+        return _redirect_group_detail(group.id, career_filter=career_filter)
+
+    records = list(ThesisRecord.objects.filter(group=group, id__in=ids).order_by("nro"))
+    if not records:
+        messages.warning(request, "No se encontraron registros para procesar.")
+        return _redirect_group_detail(group.id, career_filter=career_filter)
+
+    comment = (request.POST.get("comment") or "").strip()
+    default_comment = (
+        "Aprobado en revision masiva de grupo."
+        if action == "approve"
+        else "Observado en revision masiva de grupo."
+    )
+    comment = comment or default_comment
+
+    updated = 0
+    skipped_not_in_audit = []
+    skipped_validation = []
+    for record in records:
+        if record.status != ThesisRecord.STATUS_EN_AUDITORIA:
+            skipped_not_in_audit.append(record.nro)
+            continue
+        if action == "approve":
+            errors = validate_record_for_approval(record)
+            if errors:
+                skipped_validation.append((record.nro, errors))
+                continue
+            record.mark_approved(request.user)
+            AuditEvent.objects.create(
+                record=record,
+                action=AuditEvent.ACTION_APPROVE,
+                user=request.user,
+                comment=comment,
+            )
+        else:
+            record.mark_observed()
+            AuditEvent.objects.create(
+                record=record,
+                action=AuditEvent.ACTION_OBSERVE,
+                user=request.user,
+                comment=comment,
+            )
+        updated += 1
+
+    if updated:
+        group.recompute_status(save=True)
+        verb = "aprobados" if action == "approve" else "observados"
+        messages.success(request, f"Registros {verb}: {updated}.")
+    else:
+        messages.warning(request, "No se aplicaron cambios.")
+
+    if skipped_not_in_audit:
+        pretty = ", ".join(f"{n:03d}" for n in sorted(skipped_not_in_audit))
+        messages.warning(request, f"Se omitieron (no estaban EN AUDITORIA): {pretty}.")
+    for nro, errors in skipped_validation:
+        messages.error(request, f"Registro {nro:03d}: " + " | ".join(errors))
+
+    return _redirect_group_detail(group.id, career_filter=career_filter)
+
+
+@login_required
+@require_POST
 def records_mark_ready_view(request, record_id: int):
     record = get_object_or_404(ThesisRecord, pk=record_id)
-    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR]:
+    if not request.user.has_role(User.ROLE_CARGADOR, User.ROLE_ASESOR):
         messages.error(request, "No tienes permisos para esta acción.")
         return redirect("registry:records_detail", record_id=record.id)
     if record.group.status not in [SustentationGroup.STATUS_ARMADO, SustentationGroup.STATUS_OBSERVADO]:
@@ -175,7 +266,7 @@ def records_mark_ready_view(request, record_id: int):
 @require_POST
 def records_unready_view(request, record_id: int):
     record = get_object_or_404(ThesisRecord, pk=record_id)
-    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR]:
+    if not request.user.has_role(User.ROLE_CARGADOR, User.ROLE_ASESOR):
         messages.error(request, "No tienes permisos para esta acción.")
         return redirect("registry:records_detail", record_id=record.id)
     if record.group.status not in [SustentationGroup.STATUS_ARMADO, SustentationGroup.STATUS_OBSERVADO]:
@@ -199,7 +290,7 @@ def records_create_view(request):
         messages.error(request, "Debes crear/seleccionar un grupo de sustentación antes de crear registros.")
         return redirect("registry:groups_list")
     group = get_object_or_404(SustentationGroup, pk=int(group_id))
-    if request.user.role not in [User.ROLE_CARGADOR, User.ROLE_ASESOR]:
+    if not request.user.has_role(User.ROLE_CARGADOR, User.ROLE_ASESOR):
         messages.error(request, "No tienes permisos para agregar registros a este grupo.")
         return redirect("registry:groups_detail", group_id=group.id)
     if group.status != SustentationGroup.STATUS_ARMADO:
@@ -293,7 +384,7 @@ def records_detail_view(request, record_id: int):
     files = record.files.order_by("file_type", "original_name")
     events = record.audit_events.select_related("user").all()
     can_edit = record.can_edit(request.user)
-    can_audit = request.user.role == User.ROLE_AUDITOR
+    can_audit = request.user.is_auditor
     return render(
         request,
         "records/detail.html",

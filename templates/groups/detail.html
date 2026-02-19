@@ -42,6 +42,17 @@
   .row-actions .btn { min-height: 36px; min-width: 130px; text-align: center; }
   .row-actions .btn-secondary { background:#334155; }
   .row-actions .btn-success { background:#059669; }
+  .nro-cell { display:flex; align-items:center; gap:8px; }
+  .bulk-audit {
+    margin-bottom: 10px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .bulk-actions { display:flex; gap:8px; flex-wrap: wrap; }
+  .bulk-note { font-size:12px; color:#64748b; }
 
   @media (max-width: 720px) {
     .row-actions .btn { min-width: auto; }
@@ -55,6 +66,9 @@
     .filter-actions .btn { width: 100%; text-align: center; }
     .row-actions { flex-direction: column; align-items: stretch; }
     .row-actions .btn { width: 100%; }
+    .bulk-audit { width: 100%; }
+    .bulk-actions { width: 100%; }
+    .bulk-actions .btn { width: 100%; text-align: center; }
   }
 </style>
 
@@ -76,16 +90,16 @@
       {% if can_submit_visible %}
         <form method="post" action="{% url 'registry:groups_submit' group.id %}" style="margin:0;">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm" type="submit" {% if not can_submit_now %}disabled title="Debes marcar todos los registros como LISTO para poder enviar."{% else %}data-confirm="¿Enviar el grupo a auditoría?"{% endif %}>Enviar a auditoría</button>
+          <button class="btn btn-success btn-sm" type="submit" {% if not can_submit_now %}disabled title="Debes marcar todos los registros como LISTO para poder enviar."{% else %}data-confirm="Enviar el grupo a auditoria?"{% endif %}>Enviar a auditoria</button>
         </form>
       {% endif %}
-      {% if request.user.role == 'auditor' and group.status == 'APROBADO' %}
+      {% if can_audit and group.status == 'APROBADO' %}
         <form method="post" action="{% url 'saf:groups_generate' group.id %}" style="margin:0;" class="js-saf-generate" data-progress-url="{% url 'saf:groups_progress' group.id %}">
           {% csrf_token %}
-          <button class="btn btn-success btn-sm" type="submit" data-confirm="¿Generar SAF para este grupo?">Generar SAF</button>
+          <button class="btn btn-success btn-sm" type="submit" data-confirm="Generar SAF para este grupo?">Generar SAF</button>
         </form>
       {% endif %}
-      {% if request.user.role == 'auditor' and pub_batch and pub_batch.zip_path %}
+      {% if can_audit and pub_batch and pub_batch.zip_path %}
         <a class="btn btn-primary btn-sm" href="{% url 'saf:groups_download' group.id %}">Descargar ZIP</a>
       {% endif %}
       <a class="btn btn-secondary btn-sm" href="{% url 'registry:groups_list' %}">Volver</a>
@@ -93,12 +107,12 @@
   </div>
 </div>
 
-{% if request.user.role == 'auditor' %}
+{% if can_audit %}
   <div class="card" id="publicacion">
-    <h3 style="margin-top:0;">Publicación (DSpace)</h3>
+    <h3 style="margin-top:0;">Publicacion (DSpace)</h3>
     {% if pub_batch and pub_batch.zip_path %}
       <div class="muted" style="margin-bottom:10px;">
-        Sube aquí el `dspace_links.json` generado en el servidor DSpace para marcar como PUBLICADO y habilitar "Ver publicación".
+        Sube aqui el `dspace_links.json` generado en el servidor DSpace para marcar como PUBLICADO y habilitar "Ver publicacion".
       </div>
       <form method="post" action="{% url 'saf:groups_upload_links' group.id %}" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
         {% csrf_token %}
@@ -108,11 +122,11 @@
           <div class="help">Ejemplo: `dspace_links.json` generado por el script `export_links_uai.bat` del ZIP.</div>
         </div>
         <div>
-          <button class="btn btn-success btn-sm" type="submit" data-confirm="¿Aplicar enlaces y marcar como PUBLICADO?">Aplicar enlaces</button>
+          <button class="btn btn-success btn-sm" type="submit" data-confirm="Aplicar enlaces y marcar como PUBLICADO?">Aplicar enlaces</button>
         </div>
       </form>
     {% else %}
-      <div class="muted">Cuando el grupo esté APROBADO, genera el SAF para habilitar la descarga del ZIP y la carga del JSON.</div>
+      <div class="muted">Cuando el grupo este APROBADO, genera el SAF para habilitar la descarga del ZIP y la carga del JSON.</div>
     {% endif %}
   </div>
 {% endif %}
@@ -138,13 +152,37 @@
     </div>
   </form>
 
+  {% if can_audit and records %}
+    <form method="post" action="{% url 'registry:groups_audit_bulk' group.id %}" id="bulk-audit-form">
+      {% csrf_token %}
+      <input type="hidden" name="career_filter" value="{{ career_filter }}">
+      <div class="bulk-audit">
+        <div class="bulk-note">
+          Selecciona los registros EN AUDITORIA para aprobarlos u observarlos en bloque.
+        </div>
+        <div class="bulk-actions">
+          <button class="btn btn-warning btn-sm" type="submit" name="bulk_action" value="observe" id="btn-bulk-observe" disabled data-confirm="Marcar seleccionados como OBSERVADO?">Observar seleccionados</button>
+          <button class="btn btn-success btn-sm" type="submit" name="bulk_action" value="approve" id="btn-bulk-approve" disabled data-confirm="Marcar seleccionados como APROBADO?">Aprobar seleccionados</button>
+        </div>
+      </div>
+  {% endif %}
+
   <div class="table-shell">
     <div class="table-wrap">
       <table class="nice-table">
         <thead>
           <tr>
-            <th style="width:80px;">Nro</th>
-            <th>Título</th>
+            <th style="width:96px;">
+              {% if can_audit and records %}
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" id="bulk-select-all">
+                  <span>Nro</span>
+                </label>
+              {% else %}
+                Nro
+              {% endif %}
+            </th>
+            <th>Titulo</th>
             <th style="width:240px;">Carrera</th>
             <th style="width:160px;">Estado</th>
             <th style="width:320px;">Acciones</th>
@@ -153,9 +191,16 @@
         <tbody>
           {% for r in records %}
             <tr>
-              <td><strong>{{ r.nro|stringformat:'03d' }}</strong></td>
               <td>
-                <span class="title-cut">{{ r.titulo|default:"(sin título)" }}</span>
+                <div class="nro-cell">
+                  {% if can_audit %}
+                    <input type="checkbox" name="record_ids" value="{{ r.id }}" class="bulk-record" {% if r.status != 'EN_AUDITORIA' %}disabled{% endif %}>
+                  {% endif %}
+                  <strong>{{ r.nro|stringformat:'03d' }}</strong>
+                </div>
+              </td>
+              <td>
+                <span class="title-cut">{{ r.titulo|default:"(sin titulo)" }}</span>
                 <div class="muted" style="font-size:12px;">{{ r.authors_display|default:"-" }}</div>
               </td>
               <td>{{ r.career.carrera_excel|default:"-" }}</td>
@@ -164,17 +209,70 @@
                 <div class="row-actions">
                   <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_detail' r.id %}">Abrir</a>
                   {% if r.dspace_url %}
-                    <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
+                    <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicacion</a>
                   {% endif %}
                 </div>
               </td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="muted">Aún no hay registros en este grupo.</td></tr>
+            <tr><td colspan="5" class="muted">Aun no hay registros en este grupo.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+  {% if can_audit and records %}
+    </form>
+  {% endif %}
 </div>
+
+{% if can_audit and records %}
+<script>
+  (function () {
+    var all = document.getElementById('bulk-select-all');
+    var checks = Array.prototype.slice.call(document.querySelectorAll('.bulk-record'));
+    var btnApprove = document.getElementById('btn-bulk-approve');
+    var btnObserve = document.getElementById('btn-bulk-observe');
+    if (!all || !btnApprove || !btnObserve) return;
+
+    function selectedEnabledCount() {
+      return checks.filter(function (c) { return !c.disabled && c.checked; }).length;
+    }
+
+    function syncButtons() {
+      var selected = selectedEnabledCount();
+      var disabled = selected === 0;
+      btnApprove.disabled = disabled;
+      btnObserve.disabled = disabled;
+    }
+
+    function syncMaster() {
+      if (!checks.length) {
+        all.checked = false;
+        all.indeterminate = false;
+        return;
+      }
+      var selected = checks.filter(function (c) { return c.checked; }).length;
+      all.checked = selected === checks.length;
+      all.indeterminate = selected > 0 && selected < checks.length;
+    }
+
+    all.addEventListener('change', function () {
+      checks.forEach(function (c) { c.checked = all.checked; });
+      syncMaster();
+      syncButtons();
+    });
+
+    checks.forEach(function (c) {
+      c.addEventListener('change', function () {
+        syncMaster();
+        syncButtons();
+      });
+    });
+
+    syncMaster();
+    syncButtons();
+  })();
+</script>
+{% endif %}
 {% endblock %}

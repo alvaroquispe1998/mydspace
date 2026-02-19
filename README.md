@@ -76,7 +76,7 @@ python -m pip install -r requirements.txt
 
 python manage.py migrate
 python manage.py seed_career_config --career-map career_map.csv
-python manage.py runserver
+py manage.py runserver
 ```
 
 ## Base de datos

@@ -621,7 +621,7 @@
                 <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v4H7z"/><path d="M5 7h14v14H5z"/><path d="M8 11h8"/><path d="M8 15h8"/></svg></span>
                 <span class="sb-label">Sustentaciones</span>
               </a>
-              {% if request.user.role == 'auditor' %}
+              {% if request.user.is_auditor %}
                 <a class="sb-item {% if request.resolver_match.namespace == 'saf' %}is-active{% endif %}" title="Publicación SAF" href="{% url 'saf:batches_list' %}" {% if request.resolver_match.namespace == 'saf' %}aria-current="page"{% endif %}>
                   <span class="sb-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
                   <span class="sb-label">Publicación SAF</span>
@@ -659,7 +659,7 @@
             </div>
           </div>
 
-          {% if request.user.role == 'auditor' %}
+          {% if request.user.is_auditor %}
           <!-- Configuracion -->
           <div class="sb-sec" data-sec="configuracion">
             <button class="sb-sec-btn" type="button" title="Configuracion" aria-label="Configuracion" aria-controls="sidebar-sec-configuracion"

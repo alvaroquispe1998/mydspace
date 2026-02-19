@@ -210,6 +210,8 @@ class ThesisRecord(models.Model):
         # para evitar inconsistencias (metadatos/archivos).
         if not user:
             return False
+        if getattr(user, "is_superuser", False):
+            return self.status in [self.STATUS_BORRADOR, self.STATUS_OBSERVADO]
         role = getattr(user, "role", None)
         if role not in ["cargador", "asesor", "auditor"]:
             return False

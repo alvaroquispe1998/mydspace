@@ -117,7 +117,7 @@
       </tbody>
     </table>
 
-    {% if request.user.role == 'auditor' %}
+    {% if request.user.is_auditor %}
       <div style="height:12px;"></div>
       <h3 class="panel-title" style="margin-top:0;">Pendientes de auditoría</h3>
       {% if pending_groups %}

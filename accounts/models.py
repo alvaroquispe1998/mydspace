@@ -16,6 +16,13 @@ class User(AbstractUser):
 
     @property
     def is_auditor(self) -> bool:
-        return self.role == self.ROLE_AUDITOR
+        return bool(self.is_superuser or self.role == self.ROLE_AUDITOR)
+
+    @property
+    def is_manager(self) -> bool:
+        return bool(self.is_superuser or self.role in [self.ROLE_CARGADOR, self.ROLE_ASESOR])
+
+    def has_role(self, *roles: str) -> bool:
+        return bool(self.is_superuser or self.role in roles)
 
 # Create your models here.

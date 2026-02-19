@@ -94,7 +94,7 @@
               <a class="btn btn-success btn-sm" href="{{ r.dspace_url }}" target="_blank" rel="noopener">Ver publicación</a>
             {% endif %}
             {% if r.status == 'BORRADOR' or r.status == 'OBSERVADO' %}
-              {% if request.user.role == 'cargador' or request.user.role == 'asesor' %}
+              {% if request.user.is_manager %}
                 <a class="btn btn-secondary btn-sm" href="{% url 'registry:records_edit' r.id %}">Editar</a>
               {% endif %}
             {% endif %}
